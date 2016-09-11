@@ -33,13 +33,11 @@ func parseRuleConfig(values url.Values) (*tv.Data, error) {
 	}
 
 	return &tv.Data{
-		RuleMap: map[tv.RuleId]*tv.Rule{
-			tv.RuleId(id): &tv.Rule{
-				Config: &tv.RuleConfig{
-					Deleted:       deleted,
-					ProgramNumber: int32(programNumber),
-					Start:         start,
-				},
+		RuleConfigMap: map[tv.RuleId]*tv.RuleConfig{
+			tv.RuleId(id): {
+				Deleted:       deleted,
+				ProgramNumber: int32(programNumber),
+				Start:         start,
 			},
 		},
 	}, nil

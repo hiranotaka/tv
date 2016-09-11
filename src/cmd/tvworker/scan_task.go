@@ -210,11 +210,8 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, er
 
 func (task *ScanTask) postStreamInfo(cancel <-chan struct{}, streamInfo *tv.StreamInfo) error {
 	data := &tv.Data{
-		StreamMap: map[tv.StreamId]*tv.Stream{
-			task.Stream.Id: &tv.Stream{
-				Id:   task.Stream.Id,
-				Info: streamInfo,
-			},
+		StreamInfoMap: map[tv.StreamId]*tv.StreamInfo{
+			task.Stream.Id: streamInfo,
 		},
 	}
 

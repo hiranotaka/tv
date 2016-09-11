@@ -46,6 +46,12 @@ type StreamInfo struct {
 	Programs []*ProgramInfo
 }
 
+type Data struct {
+	StreamConfigMap map[StreamId]*StreamConfig
+	RuleConfigMap   map[RuleId]*RuleConfig
+	StreamInfoMap   map[StreamId]*StreamInfo
+}
+
 type Stream struct {
 	Id     StreamId
 	Config *StreamConfig
@@ -67,11 +73,6 @@ type Event struct {
 type Rule struct {
 	Id     RuleId
 	Config *RuleConfig
-}
-
-type Data struct {
-	StreamMap map[StreamId]*Stream
-	RuleMap   map[RuleId]*Rule
 }
 
 func (event *Event) Id() EventId {
@@ -128,55 +129,58 @@ func (rule *Rule) MatchEvent(event *Event) bool {
 	return event.Program.Info.Number == rule.Config.ProgramNumber && event.Info.Start == rule.Config.Start
 }
 
-func (data *Data) LookupOrInsertStream(id StreamId) *Stream {
-	stream := data.StreamMap[id]
-	if stream == nil {
-		stream = &Stream{Id: id}
-		if data.StreamMap == nil {
-			data.StreamMap = make(map[StreamId]*Stream)
-		}
-		data.StreamMap[id] = stream
+func (data *Data) InsertStreamConfig(id StreamId, config *StreamConfig) {
+	if data.StreamConfigMap == nil {
+		data.StreamConfigMap = make(map[StreamId]*StreamConfig)
 	}
-	return stream
+	data.StreamConfigMap[id] = config
 }
 
-func (data *Data) LookupOrInsertRule(id RuleId) *Rule {
-	rule := data.RuleMap[id]
-	if rule == nil {
-		rule = &Rule{Id: id}
-		if data.RuleMap == nil {
-			data.RuleMap = make(map[RuleId]*Rule)
-		}
-		data.RuleMap[id] = rule
+func (data *Data) InsertRuleConfig(id RuleId, config *RuleConfig) {
+	if data.RuleConfigMap == nil {
+		data.RuleConfigMap = make(map[RuleId]*RuleConfig)
 	}
-	return rule
+	data.RuleConfigMap[id] = config
+}
+
+func (data *Data) InsertStreamInfo(id StreamId, info *StreamInfo) {
+	if data.StreamInfoMap == nil {
+		data.StreamInfoMap = make(map[StreamId]*StreamInfo)
+	}
+	data.StreamInfoMap[id] = info
 }
 
 func (data *Data) MergeData(newData *Data) {
-	for id, newStream := range newData.StreamMap {
-		stream := data.LookupOrInsertStream(id)
-		if newStream.Config != nil {
-			stream.Config = newStream.Config
-		}
-		if newStream.Info != nil {
-			stream.Info = newStream.Info
+	for id, newConfig := range newData.StreamConfigMap {
+		data.InsertStreamConfig(id, newConfig)
+	}
+
+	for id, newConfig := range newData.RuleConfigMap {
+		if !newConfig.Deleted {
+			data.InsertRuleConfig(id, newConfig)
+		} else {
+			delete(data.RuleConfigMap, id)
 		}
 	}
 
-	for id, newRule := range newData.RuleMap {
-		rule := data.LookupOrInsertRule(id)
-		if newRule.Config != nil {
-			if !newRule.Config.Deleted {
-				rule.Config = newRule.Config
-			} else {
-				rule.Config = nil
-			}
-		}
+	for id, newInfo := range newData.StreamInfoMap {
+		data.InsertStreamInfo(id, newInfo)
 	}
 }
 
+func (data *Data) Streams() (streams []*Stream) {
+	for id, config := range data.StreamConfigMap {
+		streams = append(streams, &Stream{
+			Id:     id,
+			Config: config,
+			Info:   data.StreamInfoMap[id],
+		})
+	}
+	return
+}
+
 func (data *Data) Programs() (programs []*Program) {
-	for _, stream := range data.StreamMap {
+	for _, stream := range data.Streams() {
 		if stream.Info == nil {
 			continue
 		}
@@ -195,15 +199,25 @@ func (data *Data) Events() (events []*Event) {
 	return
 }
 
+func (data *Data) Rules() (rules []*Rule) {
+	for id, config := range data.RuleConfigMap {
+		rules = append(rules, &Rule{
+			Id:     id,
+			Config: config,
+		})
+	}
+	return
+}
+
 func (data *Data) StreamWithoutInfoOrWithOldestInfo() *Stream {
-	for _, stream := range data.StreamMap {
+	for _, stream := range data.Streams() {
 		if stream.Info == nil {
 			return stream
 		}
 	}
 
 	var streamWithOldestInfo *Stream
-	for _, stream := range data.StreamMap {
+	for _, stream := range data.Streams() {
 		if streamWithOldestInfo == nil || stream.Info.Time.Before(streamWithOldestInfo.Info.Time) {
 			streamWithOldestInfo = stream
 		}
@@ -213,7 +227,7 @@ func (data *Data) StreamWithoutInfoOrWithOldestInfo() *Stream {
 }
 
 func (data *Data) RuleMatchingEvent(event *Event) *Rule {
-	for _, rule := range data.RuleMap {
+	for _, rule := range data.Rules() {
 		if rule.Config == nil {
 			continue
 		}
