@@ -13,33 +13,6 @@ import (
 	"zng.jp/tv"
 )
 
-var (
-	baseData = &tv.Data{
-		StreamConfigMap: map[tv.StreamId]*tv.StreamConfig{
-			"00001": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 557142857},
-			"00002": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 551142857},
-			"00003": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 545142857},
-			"00004": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 539142857},
-			"00005": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 527142857},
-			"00006": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 533142857},
-			"00007": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 521142857},
-			"00008": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 491142857},
-			"00009": &tv.StreamConfig{System: tv.ISDB_T, Frequency: 563142857},
-			"00010": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1318000000, TsId: 0x40f1},
-			"00011": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1318000000, TsId: 0x40f2},
-			"00012": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1279640000, TsId: 0x40d0},
-			"00013": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1049480000, TsId: 0x4010},
-			"00014": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1049480000, TsId: 0x4011},
-			"00015": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1087840000, TsId: 0x4031},
-			"00016": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1279640000, TsId: 0x40d1},
-			"00017": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1087840000, TsId: 0x4030},
-			"00018": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1202920000, TsId: 0x4091},
-			"00019": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1202920000, TsId: 0x4090},
-			"00020": &tv.StreamConfig{System: tv.ISDB_S, Frequency: 1202920000, TsId: 0x4092},
-		},
-	}
-)
-
 func isRecordTaskForEvent(task Task, event *tv.Event) bool {
 	if recordTask, ok := task.(*RecordTask); ok {
 		return recordTask.Event.Program.Info.Number == event.Program.Info.Number && recordTask.Event.Info.Name == event.Info.Name
@@ -132,7 +105,7 @@ func fetchData() (*tv.Data, error) {
 		return nil, err
 	}
 
-	data.MergeData(baseData)
+	data.MergeData(tv.StreamConfigData)
 
 	return data, nil
 }

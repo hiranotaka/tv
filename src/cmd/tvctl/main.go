@@ -76,6 +76,8 @@ func processGetHtml(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	data.MergeData(tv.StreamConfigData)
+
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	if err := renderIndex(data, writer); err != nil {
