@@ -180,9 +180,8 @@ func main() {
 				runErr = nextJob.task.Run(runCancel)
 				close(runDone)
 			}()
-
-			job = nextJob
 		}
+		job = nextJob
 
 		timer := time.NewTimer(job.end.Sub(time.Now()))
 		defer timer.Stop()
