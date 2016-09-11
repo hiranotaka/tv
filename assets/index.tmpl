@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>zng.jp TV</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <link rel="stylesheet" href="assets/tv.css" type="text/css">
+  </head>
+  <body>
+    <table class="main">
+      <tr>
+        <td>
+        </td>{{range $.Programs}}
+        <td class="program">
+          {{.Info.Title}}
+        </td>{{end}}
+      </tr>{{range $interval := $.TimeIntervals}}
+      <tr class="time-interval">{{with index $interval.Start.StartingHour}}
+        <td class="hour" rowspan="{{.TimeInterval.Span}}">
+          {{.Hour}}
+        </td>{{end}}{{range $program := $.Programs}}{{with index $interval.Start.StartingSlotMap $program.Id}}{{if .Event}}{{$rule := $.Data.RuleMatchingEvent .Event}}{{if $rule}}
+        <td rowspan="{{.TimeInterval.Span}}" class="slot-with-matched-event">
+	  <span class="time">{{.Event.Info.Start.Hour | printf "%02d"}}:{{.Event.Info.Start.Minute | printf "%02d"}}</span>
+	  {{.Event.Info.Name}}
+	  <form method="post" action="./?mode=html">
+	    <input type="hidden" name="id" value="{{$rule.Id}}">
+	    <input type="hidden" name="deleted" value="yes">
+	    <input type="submit" value="Unrecord">
+	  </form>
+	</td>{{else}}
+        <td rowspan="{{.TimeInterval.Span}}" class="slot-with-event">
+	  <span class="time">{{.Event.Info.Start.Hour | printf "%02d"}}:{{.Event.Info.Start.Minute | printf "%02d"}}</span>
+	  {{.Event.Info.Name}}
+	  <form method="post" action="./?mode=html">
+	    <input type="hidden" name="id" value="{{.Event.Id}}">
+	    <input type="hidden" name="program-number" value="{{.Event.Program.Info.Number}}">
+	    <input type="hidden" name="start" value="{{.Event.Info.Start}}">
+	    <input type="submit" value="Record">
+	  </form>
+        </td>{{end}}{{else}}
+	<td rowspan="{{.TimeInterval.Span}}" class="slot-without-event"></td>{{end}}{{end}}{{end}}
+      </tr>{{end}}
+    </table>
+  </body>
+</html>
+

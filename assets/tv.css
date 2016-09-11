@@ -1,0 +1,39 @@
+body {
+    font-size: 14px;
+}
+table.main {
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+tr.time-interval {
+    height: 9px;
+}
+td.program {
+    border-style: solid;
+    border-width: 1px;
+    min-width: 120px;
+}
+td.hour {
+    border-style: solid;
+    border-width: 1px;
+}
+td.slot-with-matched-event {
+    background-color: #fcc;
+    border-style: solid;
+    border-width: 1px;
+    vertical-align: top;
+}
+td.slot-with-event {
+    border-style: solid;
+    border-width: 1px;
+    vertical-align: top;
+}
+td.slot-without-event {
+    background-color: #ccc;
+    border-style: solid;
+    border-width: 1px;
+}
+span.time {
+    font-size: 12px;
+    font-weight: bold;
+}
