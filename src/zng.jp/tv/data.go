@@ -76,7 +76,7 @@ type Rule struct {
 }
 
 func (event *Event) Id() EventId {
-	return EventId(fmt.Sprintf("%d@%s", event.IndexInProgram, event.Program.Id()))
+	return EventId(fmt.Sprintf("%05d@%s", event.IndexInProgram, event.Program.Id()))
 }
 
 func (event *Event) End() time.Time {
@@ -88,7 +88,7 @@ func (event *Event) IsCurrent(now time.Time) bool {
 }
 
 func (program *Program) Id() ProgramId {
-	return ProgramId(fmt.Sprintf("%d@%s@%s", program.IndexInStream, program.Stream.Info.Time.String(), program.Stream.Id))
+	return ProgramId(fmt.Sprintf("%05d@%s@%s", program.IndexInStream, program.Stream.Info.Time.String(), program.Stream.Id))
 }
 
 func (program *Program) Events() (events []*Event) {
