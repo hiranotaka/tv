@@ -105,8 +105,6 @@ func fetchData() (*tv.Data, error) {
 		return nil, err
 	}
 
-	data.MergeData(tv.StreamConfigData)
-
 	return data, nil
 }
 

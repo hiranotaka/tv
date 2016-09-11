@@ -47,9 +47,8 @@ type StreamInfo struct {
 }
 
 type Data struct {
-	StreamConfigMap map[StreamId]*StreamConfig
-	RuleConfigMap   map[RuleId]*RuleConfig
-	StreamInfoMap   map[StreamId]*StreamInfo
+	RuleConfigMap map[RuleId]*RuleConfig
+	StreamInfoMap map[StreamId]*StreamInfo
 }
 
 type Stream struct {
@@ -129,13 +128,6 @@ func (rule *Rule) MatchEvent(event *Event) bool {
 	return event.Program.Info.Number == rule.Config.ProgramNumber && event.Info.Start == rule.Config.Start
 }
 
-func (data *Data) InsertStreamConfig(id StreamId, config *StreamConfig) {
-	if data.StreamConfigMap == nil {
-		data.StreamConfigMap = make(map[StreamId]*StreamConfig)
-	}
-	data.StreamConfigMap[id] = config
-}
-
 func (data *Data) InsertRuleConfig(id RuleId, config *RuleConfig) {
 	if data.RuleConfigMap == nil {
 		data.RuleConfigMap = make(map[RuleId]*RuleConfig)
@@ -151,10 +143,6 @@ func (data *Data) InsertStreamInfo(id StreamId, info *StreamInfo) {
 }
 
 func (data *Data) MergeData(newData *Data) {
-	for id, newConfig := range newData.StreamConfigMap {
-		data.InsertStreamConfig(id, newConfig)
-	}
-
 	for id, newConfig := range newData.RuleConfigMap {
 		if !newConfig.Deleted {
 			data.InsertRuleConfig(id, newConfig)
@@ -168,8 +156,31 @@ func (data *Data) MergeData(newData *Data) {
 	}
 }
 
+var streamConfigMap = map[StreamId]*StreamConfig{
+	"00001": &StreamConfig{System: ISDB_T, Frequency: 557142857},
+	"00002": &StreamConfig{System: ISDB_T, Frequency: 551142857},
+	"00003": &StreamConfig{System: ISDB_T, Frequency: 545142857},
+	"00004": &StreamConfig{System: ISDB_T, Frequency: 539142857},
+	"00005": &StreamConfig{System: ISDB_T, Frequency: 527142857},
+	"00006": &StreamConfig{System: ISDB_T, Frequency: 533142857},
+	"00007": &StreamConfig{System: ISDB_T, Frequency: 521142857},
+	"00008": &StreamConfig{System: ISDB_T, Frequency: 491142857},
+	"00009": &StreamConfig{System: ISDB_T, Frequency: 563142857},
+	"00010": &StreamConfig{System: ISDB_S, Frequency: 1318000000, TsId: 0x40f1},
+	"00011": &StreamConfig{System: ISDB_S, Frequency: 1318000000, TsId: 0x40f2},
+	"00012": &StreamConfig{System: ISDB_S, Frequency: 1279640000, TsId: 0x40d0},
+	"00013": &StreamConfig{System: ISDB_S, Frequency: 1049480000, TsId: 0x4010},
+	"00014": &StreamConfig{System: ISDB_S, Frequency: 1049480000, TsId: 0x4011},
+	"00015": &StreamConfig{System: ISDB_S, Frequency: 1087840000, TsId: 0x4031},
+	"00016": &StreamConfig{System: ISDB_S, Frequency: 1279640000, TsId: 0x40d1},
+	"00017": &StreamConfig{System: ISDB_S, Frequency: 1087840000, TsId: 0x4030},
+	"00018": &StreamConfig{System: ISDB_S, Frequency: 1202920000, TsId: 0x4091},
+	"00019": &StreamConfig{System: ISDB_S, Frequency: 1202920000, TsId: 0x4090},
+	"00020": &StreamConfig{System: ISDB_S, Frequency: 1202920000, TsId: 0x4092},
+}
+
 func (data *Data) Streams() (streams []*Stream) {
-	for id, config := range data.StreamConfigMap {
+	for id, config := range streamConfigMap {
 		streams = append(streams, &Stream{
 			Id:     id,
 			Config: config,
