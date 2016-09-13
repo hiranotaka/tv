@@ -15,7 +15,7 @@ type RecordTask struct {
 }
 
 func (task *RecordTask) getFile() string {
-	return "/srv/tv/" + task.Event.Info.Name + ".mp4"
+	return "/srv/tv/" + task.Event.Info.Name + ".ts"
 }
 
 func (task *RecordTask) Run(cancel <-chan struct{}) error {
