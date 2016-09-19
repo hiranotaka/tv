@@ -111,7 +111,7 @@ func parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 }
 
 func communicate(cancel <-chan struct{}, in io.Writer, scanner *bufio.Scanner) (*tv.StreamInfo, error) {
-	if !sleep(cancel, 90*time.Second) {
+	if !sleep(cancel, 45*time.Second) {
 		return nil, errors.New("Cancelled")
 	}
 
