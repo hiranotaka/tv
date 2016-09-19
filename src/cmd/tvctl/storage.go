@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/gob"
-	"log"
+	"errors"
 	"net"
 	"os"
 	"syscall"
@@ -71,33 +71,36 @@ func writeData(newData *tv.Data) error {
 	return nil
 }
 
-func listenData(cancel <-chan struct{}) (<-chan struct{}, error) {
+func listenData(cancel <-chan struct{}, notificationQueue chan<- struct{}) error {
 	os.Remove(".data/tvctl.sock")
 	listener, err := net.Listen("unix", ".data/tvctl.sock")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	go func() {
-		<-cancel
-		listener.Close()
-	}()
+	notificationQueue <- struct{}{}
 
+	var acceptErr error
 	acceptDone := make(chan struct{})
 	go func() {
 		defer close(acceptDone)
-		acceptDone <- struct{}{}
 		for {
 			connection, err := listener.Accept()
 			if err != nil {
-				log.Print("Accept failed: %v", err)
+				acceptErr = err
 				return
 			}
-
-			acceptDone <- struct{}{}
+			notificationQueue <- struct{}{}
 			connection.Close()
 		}
 	}()
 
-	return acceptDone, nil
+	select {
+	case <-acceptDone:
+		return acceptErr
+	case <-cancel:
+		listener.Close()
+		<-acceptDone
+		return errors.New("Cancelled")
+	}
 }

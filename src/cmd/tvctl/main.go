@@ -28,11 +28,15 @@ func processGetEventStream(writer http.ResponseWriter, request *http.Request) {
 	listenCancel := make(chan struct{})
 	defer close(listenCancel)
 
-	acceptDone, err := listenData(listenCancel)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	notificationQueue := make(chan struct{})
+	var listenErr error
+	go func() {
+		defer close(notificationQueue)
+		if err := listenData(listenCancel, notificationQueue); err != nil {
+			listenErr = err
+			return
+		}
+	}()
 
 	writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 
@@ -46,8 +50,11 @@ func processGetEventStream(writer http.ResponseWriter, request *http.Request) {
 		defer timer.Stop()
 
 		select {
-		case _, ok := <-acceptDone:
+		case _, ok := <-notificationQueue:
 			if !ok {
+				if listenErr != nil {
+					log.Print("Listen failed: %v", listenErr)
+				}
 				return
 			}
 			if _, err := io.WriteString(writer, "data: ok\n\n"); err != nil {

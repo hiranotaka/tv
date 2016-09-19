@@ -108,7 +108,7 @@ func fetchData() (*tv.Data, error) {
 	return data, nil
 }
 
-func listen(receiveDone chan<- struct{}) error {
+func listen(notificationQueue chan<- struct{}) error {
 	response, err := http.Get("http://zng.jp/tv/tvctl.cgi?mode=event-stream")
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func listen(receiveDone chan<- struct{}) error {
 		if line == "" {
 			data = strings.TrimSuffix(data, "\n")
 			if data != "" {
-				receiveDone <- struct{}{}
+				notificationQueue <- struct{}{}
 				data = ""
 			}
 		} else {
@@ -149,10 +149,11 @@ func listen(receiveDone chan<- struct{}) error {
 }
 
 func main() {
-	receiveDone := make(chan struct{})
+	notificationQueue := make(chan struct{})
 	go func() {
+		defer close(notificationQueue)
 		for {
-			err := listen(receiveDone)
+			err := listen(notificationQueue)
 			log.Printf("Listen failed: %v", err)
 			time.Sleep(30 * time.Second)
 		}
@@ -193,7 +194,7 @@ func main() {
 			<-runDone
 
 			job = nil
-		case <-receiveDone:
+		case <-notificationQueue:
 			newData, err := fetchData()
 			if err != nil {
 				log.Printf("fetchData failed: %v", err)
