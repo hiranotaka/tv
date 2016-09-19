@@ -14,7 +14,7 @@
           {{.Info.Title}}
         </td>{{end}}
       </tr>{{range $interval := $.TimeIntervals}}
-      <tr class="time-interval">{{with index $interval.Start.StartingHour}}
+      <tr class="time-interval">{{with $interval.Start.StartingHour}}
         <td class="hour" rowspan="{{.TimeInterval.Span}}">
           {{.Hour}}
         </td>{{end}}{{range $program := $.Programs}}{{with index $interval.Start.StartingSlotMap $program.Id}}{{if .Event}}{{$rule := $.Data.RuleMatchingEvent .Event}}{{if $rule}}
