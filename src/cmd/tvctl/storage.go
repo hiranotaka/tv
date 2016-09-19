@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/gob"
 	"errors"
-	"net"
+	"golang.org/x/exp/inotify"
 	"os"
 	"syscall"
 	"zng.jp/tv"
@@ -22,15 +22,6 @@ func readData() (*tv.Data, error) {
 		return nil, err
 	}
 	return data, nil
-}
-
-func notifyData() {
-	connection, err := net.Dial("unix", ".data/tvctl.sock")
-	if err != nil {
-		return
-	}
-
-	connection.Close()
 }
 
 func writeData(newData *tv.Data) error {
@@ -66,41 +57,33 @@ func writeData(newData *tv.Data) error {
 	if err := os.Rename(".data/tvctl.gob.tmp", ".data/tvctl.gob"); err != nil {
 		return err
 	}
-
-	notifyData()
 	return nil
 }
 
 func listenData(cancel <-chan struct{}, notificationQueue chan<- struct{}) error {
-	os.Remove(".data/tvctl.sock")
-	listener, err := net.Listen("unix", ".data/tvctl.sock")
+	watcher, err := inotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 
+	err = watcher.AddWatch(".data", inotify.IN_MOVED_TO)
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+
 	notificationQueue <- struct{}{}
 
-	var acceptErr error
-	acceptDone := make(chan struct{})
-	go func() {
-		defer close(acceptDone)
-		for {
-			connection, err := listener.Accept()
-			if err != nil {
-				acceptErr = err
-				return
+	for {
+		select {
+		case event := <-watcher.Event:
+			if event.Name == ".data/tvctl.gob" {
+				notificationQueue <- struct{}{}
 			}
-			notificationQueue <- struct{}{}
-			connection.Close()
+		case err := <-watcher.Error:
+			return err
+		case <-cancel:
+			return errors.New("Cancelled")
 		}
-	}()
-
-	select {
-	case <-acceptDone:
-		return acceptErr
-	case <-cancel:
-		listener.Close()
-		<-acceptDone
-		return errors.New("Cancelled")
 	}
 }
