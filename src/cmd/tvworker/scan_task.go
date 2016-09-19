@@ -77,7 +77,7 @@ func parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if matches := regexp.MustCompile(`^\+----\[ (.*) \]$`).FindStringSubmatch(line); matches != nil {
+		if matches := regexp.MustCompile(`^(?:> )?\+----\[ (.*) \]$`).FindStringSubmatch(line); matches != nil {
 			section := matches[1]
 			if section == "end of stream info" {
 				return &tv.StreamInfo{
