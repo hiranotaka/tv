@@ -14,7 +14,7 @@ var (
 
 type time struct {
 	Index           int
-	time            timepkg.Time
+	Time            timepkg.Time
 	startingEvents  []*tv.Event
 	endingEvents    []*tv.Event
 	StartingHour    *hour
@@ -62,7 +62,7 @@ func (times timesAsc) Len() int {
 }
 
 func (times timesAsc) Less(i, j int) bool {
-	return times[i].time.Before(times[j].time)
+	return times[i].Time.Before(times[j].Time)
 }
 
 func (times timesAsc) Swap(i, j int) {
@@ -98,10 +98,10 @@ func renderIndex(data *tv.Data, writer io.Writer) error {
 		}
 
 		times = append(times, &time{
-			time:           event.Info.Start,
+			Time:           event.Info.Start,
 			startingEvents: []*tv.Event{event},
 		}, &time{
-			time:         event.End(),
+			Time:         event.End(),
 			endingEvents: []*tv.Event{event},
 		})
 	}
@@ -111,10 +111,10 @@ func renderIndex(data *tv.Data, writer io.Writer) error {
 		end := timepkg.Date(minTime.Year(), minTime.Month(), minTime.Day(), minTime.Hour()+hourOffset+1, 0, 0, 0, location)
 		hour := &hour{Hour: start.Hour()}
 		times = append(times, &time{
-			time:         start,
+			Time:         start,
 			StartingHour: hour,
 		}, &time{
-			time:       end,
+			Time:       end,
 			EndingHour: hour,
 		})
 
@@ -128,8 +128,8 @@ func renderIndex(data *tv.Data, writer io.Writer) error {
 	var uniqueTimes []*time
 	var uniqueTime *time
 	for _, aTime := range times {
-		if uniqueTime == nil || !aTime.time.Equal(uniqueTime.time) {
-			uniqueTime = &time{time: aTime.time, Index: len(uniqueTimes)}
+		if uniqueTime == nil || !aTime.Time.Equal(uniqueTime.Time) {
+			uniqueTime = &time{Time: aTime.Time, Index: len(uniqueTimes)}
 			uniqueTimes = append(uniqueTimes, uniqueTime)
 		}
 		uniqueTime.startingEvents = append(uniqueTime.startingEvents, aTime.startingEvents...)
