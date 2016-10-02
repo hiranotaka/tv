@@ -6,40 +6,42 @@
     <link rel="stylesheet" href="assets/tv.css" type="text/css">
   </head>
   <body>
-    <table class="main">
-      <tr>
-        <td class="hour program">
-        </td>{{range $index, $program := $.Programs}}
-        <td class="program" style="left: calc(20px + {{$index}} * 100px)">
-          {{.Info.Title}}
-        </td>{{end}}
-      </tr>{{range $interval := $.TimeIntervals}}{{$minTime := (index $.TimeIntervals 0).Start.Time}}
-      <tr class="time-interval" style="top: calc(20px + {{($interval.Start.Time.Sub $minTime).Minutes}} * 3px)">{{with $interval.Start.StartingHour}}
-        <td class="hour" rowspan="{{.TimeInterval.Span}}" style="height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-          {{.Hour}}
-        </td>{{end}}{{range $index, $program := $.Programs}}{{with index $interval.Start.StartingSlotMap $program.Id}}{{if .Event}}{{$rule := $.Data.RuleMatchingEvent .Event}}{{if $rule}}
-        <td rowspan="{{.TimeInterval.Span}}" class="slot-with-matched-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-	  <span class="time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
-	  {{.Event.Info.Name}}
-	  <form method="post" action="./?mode=html">
-	    <input type="hidden" name="id" value="{{$rule.Id}}">
-	    <input type="hidden" name="deleted" value="yes">
-	    <input type="submit" value="Unrecord">
-	  </form>
-	</td>{{else}}
-        <td rowspan="{{.TimeInterval.Span}}" class="slot-with-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-	  <span class="time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
-	  {{.Event.Info.Name}}
-	  <form method="post" action="./?mode=html">
-	    <input type="hidden" name="id" value="{{.Event.Id}}">
-	    <input type="hidden" name="program-number" value="{{.Event.Program.Info.Number}}">
-	    <input type="hidden" name="start" value="{{.Event.Info.Start}}">
-	    <input type="submit" value="Record">
-	  </form>
-        </td>{{end}}{{else}}
-	<td rowspan="{{.TimeInterval.Span}}" class="slot-without-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)"></td>{{end}}{{end}}{{end}}
-      </tr>{{end}}
-    </table>
+    <div>
+      <table class="main">
+	<tr>
+          <td class="hour program">
+          </td>{{range $index, $program := $.Programs}}
+          <td class="program" style="left: calc(20px + {{$index}} * 100px)">
+            {{.Info.Title}}
+          </td>{{end}}
+	</tr>{{range $interval := $.TimeIntervals}}{{$minTime := (index $.TimeIntervals 0).Start.Time}}
+	<tr class="time-interval" style="top: calc(20px + {{($interval.Start.Time.Sub $minTime).Minutes}} * 3px)">{{with $interval.Start.StartingHour}}
+          <td class="hour" rowspan="{{.TimeInterval.Span}}" style="height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
+            {{.Hour}}
+          </td>{{end}}{{range $index, $program := $.Programs}}{{with index $interval.Start.StartingSlotMap $program.Id}}{{if .Event}}{{$rule := $.Data.RuleMatchingEvent .Event}}{{if $rule}}
+          <td rowspan="{{.TimeInterval.Span}}" class="slot-with-matched-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
+	    <span class="time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
+	    {{.Event.Info.Name}}
+	    <form method="post" action="./?mode=html">
+	      <input type="hidden" name="id" value="{{$rule.Id}}">
+	      <input type="hidden" name="deleted" value="yes">
+	      <input type="submit" value="Unrecord">
+	    </form>
+	  </td>{{else}}
+          <td rowspan="{{.TimeInterval.Span}}" class="slot-with-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
+	    <span class="time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
+	    {{.Event.Info.Name}}
+	    <form method="post" action="./?mode=html">
+	      <input type="hidden" name="id" value="{{.Event.Id}}">
+	      <input type="hidden" name="program-number" value="{{.Event.Program.Info.Number}}">
+	      <input type="hidden" name="start" value="{{.Event.Info.Start}}">
+	      <input type="submit" value="Record">
+	    </form>
+          </td>{{end}}{{else}}
+	  <td rowspan="{{.TimeInterval.Span}}" class="slot-without-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)"></td>{{end}}{{end}}{{end}}
+	</tr>{{end}}
+      </table>
+    </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script>
     <script src="assets/tv.js" type="text/javascript"></script>
   </body>
