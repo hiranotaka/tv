@@ -1,6 +1,6 @@
 function updatePositions() {
-    $('td.hour').css('left', $(window).scrollLeft() + 'px');
-    $('td.program').css('top', $(window).scrollTop() + 'px');
+    $('td.main-hour').css('left', $(window).scrollLeft() + 'px');
+    $('td.main-program').css('top', $(window).scrollTop() + 'px');
 }
 
 function updateSelectedEvent() {
