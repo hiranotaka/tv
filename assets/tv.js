@@ -19,7 +19,7 @@ $(window).submit(function(event) {
 	'./?mode=html .main', target.serializeArray(), function() {
 	    updatePositions();
 	});
-    $('.main :input').prop('disabled', true);
+    $('.event :input').prop('disabled', true);
     event.preventDefault();
 });
 
