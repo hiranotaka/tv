@@ -32,6 +32,18 @@ func parseRuleConfig(values url.Values) (*tv.Data, error) {
 		}
 	}
 
+	var duration timepkg.Duration
+	durationStr := values.Get("duration")
+	if durationStr != "" {
+		var err error
+		duration, err = timepkg.ParseDuration(durationStr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	name := values.Get("name")
+
 	weekly := values.Get("weekly") != ""
 
 	return &tv.Data{
@@ -40,6 +52,8 @@ func parseRuleConfig(values url.Values) (*tv.Data, error) {
 				Deleted:       deleted,
 				ProgramNumber: int32(programNumber),
 				Start:         start,
+				Duration:      duration,
+				Name:          name,
 				Weekly:        weekly,
 			},
 		},

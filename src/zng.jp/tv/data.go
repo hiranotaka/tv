@@ -26,6 +26,8 @@ type RuleConfig struct {
 	Deleted       bool
 	ProgramNumber int32
 	Start         time.Time
+	Duration      time.Duration
+	Name          string
 	Weekly        bool
 }
 
