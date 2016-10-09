@@ -48,12 +48,16 @@
               {{.Hour}}
             </td>{{end}}{{range $index, $program := $.Programs}}{{with index $interval.Start.StartingSlotMap $program.Id}}{{if .Event}}{{$rule := $.Data.RuleMatchingEvent .Event}}{{if $rule}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-with-matched-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-              <span class="main-slot-time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
-              <a class="main-slot-link" href="./?mode=html&amp;selected-event={{.Event.Id}}">{{.Event.Info.Name}}</a>
+              <a class="main-slot-link" href="./?mode=html&amp;selected-event={{.Event.Id}}">
+                <span class="main-slot-time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
+                {{.Event.Info.Name}}
+              </a>
             </td>{{else}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-with-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-              <span class="main-slot-time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
-              <a class="main-slot-link" href="./?mode=html&amp;selected-event={{.Event.Id}}">{{.Event.Info.Name}}</a>
+              <a class="main-slot-link" href="./?mode=html&amp;selected-event={{.Event.Id}}">
+                <span class="main-slot-time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
+                {{.Event.Info.Name}}
+              </a>
             </td>{{end}}{{else}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-without-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)"></td>{{end}}{{end}}{{end}}
           </tr>{{end}}
