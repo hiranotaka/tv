@@ -2,18 +2,15 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"time"
 	"zng.jp/tv"
+	"zng.jp/tv/db"
 )
 
 type ScanTask struct {
@@ -208,41 +205,6 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, er
 	}
 }
 
-func (task *ScanTask) postStreamInfo(cancel <-chan struct{}, streamInfo *tv.StreamInfo) error {
-	data := &tv.Data{
-		StreamInfoMap: map[tv.StreamId]*tv.StreamInfo{
-			task.Stream.Id: streamInfo,
-		},
-	}
-
-	buf := &bytes.Buffer{}
-	if err := json.NewEncoder(buf).Encode(data); err != nil {
-		return err
-	}
-
-	request, err := http.NewRequest(http.MethodPost, "http://zng.jp/tv/tvctl.cgi?mode=json", buf)
-	if err != nil {
-		return err
-	}
-
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
-	request.Cancel = cancel
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return err
-	}
-
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(response.Body)
-		return errors.New("Server returned on-OK status: " + strconv.Itoa(response.StatusCode) + " " + string(body))
-	}
-
-	return nil
-}
-
 func (task *ScanTask) Run(cancel <-chan struct{}) error {
 	log.Printf("Scanning stream info: %s ...", task.Stream.Id)
 	streamInfo, err := task.scanStreamInfo(cancel)
@@ -251,7 +213,11 @@ func (task *ScanTask) Run(cancel <-chan struct{}) error {
 	}
 
 	log.Printf("Submitting stream info: %s ...", task.Stream.Id)
-	if err := task.postStreamInfo(cancel, streamInfo); err != nil {
+	if err := db.PostData(cancel, &tv.Data{
+		StreamInfoMap: map[tv.StreamId]*tv.StreamInfo{
+			task.Stream.Id: streamInfo,
+		},
+	}); err != nil {
 		return err
 	}
 

@@ -1,16 +1,10 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
-	"errors"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"strconv"
-	"strings"
 	"time"
 	"zng.jp/tv"
+	"zng.jp/tv/db"
 )
 
 func isRecordTaskForEvent(task Task, event *tv.Event) bool {
@@ -87,73 +81,12 @@ func pickNextJob(data *tv.Data, currentJob *job, now time.Time) *job {
 	}
 }
 
-func fetchData() (*tv.Data, error) {
-	log.Print("Fetching data...")
-	response, err := http.Get("http://zng.jp/tv/tvctl.cgi?mode=json")
-	if err != nil {
-		return nil, err
-	}
-
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(response.Body)
-		return nil, errors.New("Server returned on-OK status: " + strconv.Itoa(response.StatusCode) + " " + string(body))
-	}
-
-	data := &tv.Data{}
-	if err := json.NewDecoder(response.Body).Decode(data); err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func listen(notificationQueue chan<- struct{}) error {
-	response, err := http.Get("http://zng.jp/tv/tvctl.cgi?mode=event-stream")
-	if err != nil {
-		return err
-	}
-
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(response.Body)
-		return errors.New("Server returned on-OK status: " + strconv.Itoa(response.StatusCode) + " " + string(body))
-	}
-
-	scanner := bufio.NewScanner(response.Body)
-	data := ""
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			data = strings.TrimSuffix(data, "\n")
-			if data != "" {
-				notificationQueue <- struct{}{}
-				data = ""
-			}
-		} else {
-			fieldValue := strings.SplitN(line, ":", 2)
-			field := fieldValue[0]
-			value := ""
-			if len(fieldValue) == 2 {
-				value = fieldValue[1]
-			}
-			value = strings.TrimPrefix(value, " ")
-
-			if field == "data" {
-				data += value
-			}
-		}
-	}
-
-	return scanner.Err()
-}
-
 func main() {
 	notificationQueue := make(chan struct{})
 	go func() {
 		defer close(notificationQueue)
 		for {
-			err := listen(notificationQueue)
+			err := db.ListenData(notificationQueue)
 			log.Printf("Listen failed: %v", err)
 			time.Sleep(30 * time.Second)
 		}
@@ -195,7 +128,8 @@ func main() {
 
 			job = nil
 		case <-notificationQueue:
-			newData, err := fetchData()
+			log.Print("Fetching data...")
+			newData, err := db.FetchData()
 			if err != nil {
 				log.Printf("fetchData failed: %v", err)
 				break
