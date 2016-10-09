@@ -67,16 +67,16 @@ func pickNextJob(data *tv.Data, currentJob *job, now time.Time) *job {
 	if stream != nil {
 		var scanStart time.Time
 		if stream.Info != nil {
-			scanStart = stream.Info.Time.Add(6 * time.Hour)
+			scanStart = stream.Info.Time.Add(3 * time.Hour)
 		}
 		if scanStart.Before(now) {
-			if idleEnd.Sub(now) > 120*time.Second {
+			if idleEnd.Sub(now) > 305*time.Second {
 				return &job{
 					task: &ScanTask{Stream: stream},
-					end:  now.Add(120 * time.Second),
+					end:  now.Add(305 * time.Second),
 				}
 			}
-		} else if idleEnd.Sub(scanStart) > 120*time.Second {
+		} else if idleEnd.Sub(scanStart) > 305*time.Second {
 			idleEnd = scanStart
 		}
 	}
