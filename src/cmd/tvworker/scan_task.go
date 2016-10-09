@@ -226,7 +226,7 @@ func (task *ScanTask) postStreamInfo(cancel <-chan struct{}, streamInfo *tv.Stre
 	}
 
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Content-Lentgh", strconv.Itoa(buf.Len()))
+	request.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
 	request.Cancel = cancel
 
 	response, err := http.DefaultClient.Do(request)
