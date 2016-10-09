@@ -116,10 +116,10 @@ func main() {
 		job = nextJob
 
 		timer := time.NewTimer(job.end.Sub(time.Now()))
-		defer timer.Stop()
 
 		select {
 		case <-runDone:
+			timer.Stop()
 			job = nil
 		case <-timer.C:
 			log.Print("Terminating task...")
@@ -128,6 +128,7 @@ func main() {
 
 			job = nil
 		case <-notificationQueue:
+			timer.Stop()
 			log.Print("Fetching data...")
 			newData, err := db.FetchData()
 			if err != nil {
