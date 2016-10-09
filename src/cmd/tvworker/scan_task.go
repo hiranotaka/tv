@@ -14,6 +14,7 @@ import (
 )
 
 type ScanTask struct {
+	Time   time.Time
 	Stream *tv.Stream
 }
 
@@ -68,7 +69,7 @@ func (parser *programInfoParser) parseLine(line string) error {
 	return nil
 }
 
-func parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
+func (task *ScanTask) parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 	var programsInfo []*tv.ProgramInfo
 	var sectionParser sectionParser
 	for scanner.Scan() {
@@ -78,7 +79,7 @@ func parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 			section := matches[1]
 			if section == "end of stream info" {
 				return &tv.StreamInfo{
-					Time:     time.Now(),
+					Time:     task.Time,
 					Programs: programsInfo,
 				}, nil
 			}
@@ -107,7 +108,7 @@ func parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 	return nil, scanner.Err()
 }
 
-func communicate(cancel <-chan struct{}, in io.Writer, scanner *bufio.Scanner) (*tv.StreamInfo, error) {
+func (task *ScanTask) communicate(cancel <-chan struct{}, in io.Writer, scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 	if !sleep(cancel, 300*time.Second) {
 		return nil, errors.New("Cancelled")
 	}
@@ -117,7 +118,7 @@ func communicate(cancel <-chan struct{}, in io.Writer, scanner *bufio.Scanner) (
 		return nil, err
 	}
 
-	streamInfo, err := parseStreamInfo(scanner)
+	streamInfo, err := task.parseStreamInfo(scanner)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +158,7 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, er
 	var streamInfo *tv.StreamInfo
 	var communicateErr error
 	go func() {
-		streamInfo, communicateErr = communicate(communicateCancel, in, scanner)
+		streamInfo, communicateErr = task.communicate(communicateCancel, in, scanner)
 		close(communicateDone)
 	}()
 
@@ -206,18 +207,24 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, er
 }
 
 func (task *ScanTask) Run(cancel <-chan struct{}) error {
+	data := &tv.Data{
+		StreamStateMap: map[tv.StreamId]*tv.StreamState{
+			task.Stream.Id: &tv.StreamState{
+				Time: task.Time,
+			},
+		},
+	}
+
 	log.Printf("Scanning stream info: %s ...", task.Stream.Id)
 	streamInfo, err := task.scanStreamInfo(cancel)
-	if err != nil {
+	if err == nil {
+		data.InsertStreamInfo(task.Stream.Id, streamInfo)
+	} else if err.Error() == "Cancelled" {
 		return err
 	}
 
 	log.Printf("Submitting stream info: %s ...", task.Stream.Id)
-	if err := db.PostData(cancel, &tv.Data{
-		StreamInfoMap: map[tv.StreamId]*tv.StreamInfo{
-			task.Stream.Id: streamInfo,
-		},
-	}); err != nil {
+	if err := db.PostData(cancel, data); err != nil {
 		return err
 	}
 

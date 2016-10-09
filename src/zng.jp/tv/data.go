@@ -28,6 +28,10 @@ type RuleConfig struct {
 	Start         time.Time
 }
 
+type StreamState struct {
+	Time time.Time
+}
+
 type EventInfo struct {
 	Start       time.Time
 	Duration    time.Duration
@@ -47,13 +51,15 @@ type StreamInfo struct {
 }
 
 type Data struct {
-	RuleConfigMap map[RuleId]*RuleConfig
-	StreamInfoMap map[StreamId]*StreamInfo
+	RuleConfigMap  map[RuleId]*RuleConfig
+	StreamStateMap map[StreamId]*StreamState
+	StreamInfoMap  map[StreamId]*StreamInfo
 }
 
 type Stream struct {
 	Id     StreamId
 	Config *StreamConfig
+	State  *StreamState
 	Info   *StreamInfo
 }
 
@@ -135,6 +141,13 @@ func (data *Data) InsertRuleConfig(id RuleId, config *RuleConfig) {
 	data.RuleConfigMap[id] = config
 }
 
+func (data *Data) InsertStreamState(id StreamId, info *StreamState) {
+	if data.StreamStateMap == nil {
+		data.StreamStateMap = make(map[StreamId]*StreamState)
+	}
+	data.StreamStateMap[id] = info
+}
+
 func (data *Data) InsertStreamInfo(id StreamId, info *StreamInfo) {
 	if data.StreamInfoMap == nil {
 		data.StreamInfoMap = make(map[StreamId]*StreamInfo)
@@ -149,6 +162,10 @@ func (data *Data) MergeData(newData *Data) {
 		} else {
 			delete(data.RuleConfigMap, id)
 		}
+	}
+
+	for id, newState := range newData.StreamStateMap {
+		data.InsertStreamState(id, newState)
 	}
 
 	for id, newInfo := range newData.StreamInfoMap {
@@ -184,6 +201,7 @@ func (data *Data) Streams() (streams []*Stream) {
 		streams = append(streams, &Stream{
 			Id:     id,
 			Config: config,
+			State:  data.StreamStateMap[id],
 			Info:   data.StreamInfoMap[id],
 		})
 	}
@@ -220,21 +238,21 @@ func (data *Data) Rules() (rules []*Rule) {
 	return
 }
 
-func (data *Data) StreamWithoutInfoOrWithOldestInfo() *Stream {
+func (data *Data) StreamWithoutStateOrWithOldestState() *Stream {
 	for _, stream := range data.Streams() {
-		if stream.Info == nil {
+		if stream.State == nil {
 			return stream
 		}
 	}
 
-	var streamWithOldestInfo *Stream
+	var streamWithOldestState *Stream
 	for _, stream := range data.Streams() {
-		if streamWithOldestInfo == nil || stream.Info.Time.Before(streamWithOldestInfo.Info.Time) {
-			streamWithOldestInfo = stream
+		if streamWithOldestState == nil || stream.State.Time.Before(streamWithOldestState.State.Time) {
+			streamWithOldestState = stream
 		}
 	}
 
-	return streamWithOldestInfo
+	return streamWithOldestState
 }
 
 func (data *Data) RuleMatchingEvent(event *Event) *Rule {
