@@ -87,6 +87,7 @@ div.event-widget {
     background-color: #fff;
     border-radius: 14px;
     bottom: 5%;
+    box-shadow: 0 0 9px;
     left: 5%;
     padding: 14px;
     position: fixed;
