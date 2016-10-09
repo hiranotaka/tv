@@ -85,7 +85,10 @@ func processGetHtml(writer http.ResponseWriter, request *http.Request) {
 
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if err := renderIndex(data, writer); err != nil {
+	url := request.URL
+	query := url.Query()
+	selectedEventId := tv.EventId(query.Get("selected-event"))
+	if err := renderIndex(data, selectedEventId, writer); err != nil {
 		log.Print("Render failed: %v", err)
 		return
 	}

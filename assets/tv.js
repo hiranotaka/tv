@@ -17,3 +17,12 @@ $(window).submit(function(event) {
     $('.main :input').prop('disabled', true);
     event.preventDefault();
 });
+
+$(window).click(function(event) {
+    var target = $(event.target);
+    var href = target.prop('href');
+    if (href) {
+	$('.event').parent().load(href + ' .event', null);
+	event.preventDefault();
+    }
+});

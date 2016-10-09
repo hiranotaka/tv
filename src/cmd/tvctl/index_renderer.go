@@ -70,13 +70,14 @@ func (times timesAsc) Swap(i, j int) {
 }
 
 type indexTemplateArgs struct {
-	Data          *tv.Data
-	Programs      []*tv.Program
-	TimeIntervals []timeInterval
-	Location      *timepkg.Location
+	Data            *tv.Data
+	Programs        []*tv.Program
+	TimeIntervals   []timeInterval
+	SelectedEventId tv.EventId
+	Location        *timepkg.Location
 }
 
-func renderIndex(data *tv.Data, writer io.Writer) error {
+func renderIndex(data *tv.Data, selectedEventId tv.EventId, writer io.Writer) error {
 	location, err := timepkg.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		return err
@@ -197,9 +198,10 @@ func renderIndex(data *tv.Data, writer io.Writer) error {
 	}
 
 	args := &indexTemplateArgs{
-		Data:          data,
-		Programs:      programs,
-		TimeIntervals: timeIntervals,
+		Data:            data,
+		Programs:        programs,
+		TimeIntervals:   timeIntervals,
+		SelectedEventId: selectedEventId,
 	}
 
 	return indexTemplate.Execute(writer, args)

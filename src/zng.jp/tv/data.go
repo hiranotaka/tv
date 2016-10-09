@@ -238,6 +238,15 @@ func (data *Data) Rules() (rules []*Rule) {
 	return
 }
 
+func (data *Data) FindEvent(id EventId) *Event {
+	for _, event := range data.Events() {
+		if event.Id() == id {
+			return event
+		}
+	}
+	return nil
+}
+
 func (data *Data) StreamWithoutStateOrWithOldestState() *Stream {
 	for _, stream := range data.Streams() {
 		if stream.State == nil {
