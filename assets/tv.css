@@ -3,23 +3,23 @@ body {
     position: absolute;
     margin: 0;
 }
-table.main {
+table.main-table {
     display: block;
 }
-table.main > tbody {
+table.main-table > tbody {
     display: block;
 }
-table.main > tbody > tr {
+table.main-table > tbody > tr {
     display: block;
     position: absolute;
 }
-table.main > tbody > tr > td {
+table.main-table > tbody > tr > td {
     display: block;
     padding: 0;
     position: absolute;
     overflow: hidden;
 }
-td.program.hour {
+td.main-program.main-hour {
     background-color: #fc9;
     border-width: 0;
     height: 20px;
@@ -27,7 +27,7 @@ td.program.hour {
     width: 20px;
     z-index: 2;
 }
-td.program {
+td.main-program {
     background-color: #f90;
     border-color: #fc9;
     border-style: solid;
@@ -39,7 +39,7 @@ td.program {
     width: 99px;
     z-index: 1;
 }
-td.hour {
+td.main-hour {
     background-color: #09c;
     border-color: #9cf;
     border-style: solid;
@@ -50,7 +50,7 @@ td.hour {
     width: 20px;
     z-index: 1;
 }
-td.slot-with-matched-event {
+td.main-slot-with-matched-event {
     background-color: #fcc;
     border-color: #999;
     border-style: solid;
@@ -58,14 +58,14 @@ td.slot-with-matched-event {
     margin: -0.5px;
     width: 99px;
 }
-td.slot-with-event {
+td.main-slot-with-event {
     border-color: #999;
     border-style: solid;
     border-width: 1px;
     margin: -0.5px;
     width: 99px;
 }
-td.slot-without-event {
+td.main-slot-without-event {
     background-color: #ccc;
     border-color: #999;
     border-style: solid;
@@ -73,7 +73,7 @@ td.slot-without-event {
     margin: -0.5px;
     width: 99px;
 }
-span.time {
+span.main-slot-time {
     background-color: #09c;
     color: #fff;
 }
