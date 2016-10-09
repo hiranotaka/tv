@@ -32,12 +32,15 @@ func parseRuleConfig(values url.Values) (*tv.Data, error) {
 		}
 	}
 
+	weekly := values.Get("weekly") != ""
+
 	return &tv.Data{
 		RuleConfigMap: map[tv.RuleId]*tv.RuleConfig{
 			tv.RuleId(id): {
 				Deleted:       deleted,
 				ProgramNumber: int32(programNumber),
 				Start:         start,
+				Weekly:        weekly,
 			},
 		},
 	}, nil

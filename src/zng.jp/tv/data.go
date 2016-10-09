@@ -26,6 +26,7 @@ type RuleConfig struct {
 	Deleted       bool
 	ProgramNumber int32
 	Start         time.Time
+	Weekly        bool
 }
 
 type StreamState struct {
@@ -131,7 +132,20 @@ func (stream *Stream) Url() (string, error) {
 }
 
 func (rule *Rule) MatchEvent(event *Event) bool {
-	return event.Program.Info.Number == rule.Config.ProgramNumber && event.Info.Start == rule.Config.Start
+	if event.Program.Info.Number != rule.Config.ProgramNumber {
+		return false
+	}
+
+	if !rule.Config.Weekly {
+		if event.Info.Start != rule.Config.Start {
+			return false
+		}
+	} else {
+		if event.Info.Start.Location() != rule.Config.Start.Location() || event.Info.Start.Weekday() != rule.Config.Start.Weekday() || event.Info.Start.Hour() != rule.Config.Start.Hour() || event.Info.Start.Minute() != rule.Config.Start.Minute() {
+			return false
+		}
+	}
+	return true
 }
 
 func (data *Data) InsertRuleConfig(id RuleId, config *RuleConfig) {
