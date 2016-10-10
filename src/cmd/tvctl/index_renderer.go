@@ -76,8 +76,8 @@ type indexTemplateArgs struct {
 	TimeIntervals   []timeInterval
 	SelectedDay     timepkg.Time
 	Days            []timepkg.Time
+	ExpandDays      bool
 	SelectedEventId tv.EventId
-	WantEvent       bool
 }
 
 func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
@@ -94,8 +94,8 @@ func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
 	} else {
 		selectedTime = now
 	}
+	expandDays := query.Get("expand-days") != ""
 	selectedEventId := tv.EventId(query.Get("selected-event"))
-	wantEvent := query.Get("want-event") != ""
 
 	selectedDayStart := timepkg.Date(selectedTime.Year(), selectedTime.Month(), selectedTime.Day(), 0, 0, 0, 0, selectedTime.Location())
 	selectedDayEnd := timepkg.Date(selectedTime.Year(), selectedTime.Month(), selectedTime.Day()+1, 0, 0, 0, 0, selectedTime.Location())
@@ -225,8 +225,8 @@ func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
 		TimeIntervals:   timeIntervals,
 		SelectedDay:     selectedDayStart,
 		Days:            days,
+		ExpandDays:      expandDays,
 		SelectedEventId: selectedEventId,
-		WantEvent:       wantEvent,
 	}
 
 	return indexTemplate.Execute(writer, args)

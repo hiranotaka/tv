@@ -8,19 +8,16 @@
   <body>
     <div>
       <div class="main">
-	<div class="nav">
+	<div class="nav">{{if not $.ExpandDays}}
 	  <div class="nav-head">
-	    {{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}}
+	    <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;expand-days=yes">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▾</a>
+	  </div>{{else}}
+	  <div class="nav-head">
+	    <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▴</a>
 	  </div>
-	  <div class="nav-form">
-	    <form method="get">
-	      <input type="hidden" name="mode" value="html">
-	      <select name="time">{{range $.Days}}
-		<option value="{{.}}" {{if .Equal $.SelectedDay}} selected{{end}}>{{.Day}} {{.Weekday}}</option>{{end}}
-	      </select>
-	      <input type="submit" value="Go">
-	    </form>
-	  </div>
+	  <ul class="nav-list">{{range $.Days}}
+	    <li class="{{if .Equal $.SelectedDay}}nav-selected-day{{else}}nav-day{{end}}"><a class="nav-link" href="./?mode=html&amp;time={{.}}">{{.Day}} {{.Weekday}}</a></li>{{end}}
+	  </ul>{{end}}
 	</div>
         <div>
           <div class="event">{{with $.Data.FindEvent $.SelectedEventId}}
@@ -50,7 +47,7 @@
               </div>
             </div>{{end}}
           </div>
-        </div>{{if not $.WantEvent}}
+        </div>
         <table class="main-table">
           <tr>
             <td class="main-hour main-program">
@@ -77,7 +74,7 @@
             </td>{{end}}{{else}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-without-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)"></td>{{end}}{{end}}{{end}}
           </tr>{{end}}
-        </table>{{end}}
+        </table>
       </div>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script>

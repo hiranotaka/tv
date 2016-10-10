@@ -3,10 +3,10 @@ function updatePositions() {
     $('td.main-program').css('top', $(window).scrollTop() + 'px');
 }
 
-function updateSelectedEvent() {
-    var params = { 'want-event': true };
-    $('.event').parent().load(window.location.href + ' .event',
-			      $.param(params));
+function updateMain() {
+    $('.main').parent().load(window.location.href + ' .main', function() {
+	updatePositions();
+    });
 }
 
 $(window).scroll(function () {
@@ -34,11 +34,11 @@ $(window).click(function(event) {
     var href = target.prop('href');
     if (href) {
 	window.history.pushState(null, null, href);
-	updateSelectedEvent();
+	updateMain();
 	event.preventDefault();
     }
 });
 
 $(window).bind('popstate', function() {
-    updateSelectedEvent();
+    updateMain();
 });
