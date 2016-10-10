@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"io"
+	"net/url"
 	"sort"
 	timepkg "time"
 	"zng.jp/tv"
@@ -75,9 +76,13 @@ type indexTemplateArgs struct {
 	TimeIntervals   []timeInterval
 	SelectedEventId tv.EventId
 	Location        *timepkg.Location
+	WantEvent       bool
 }
 
-func renderIndex(data *tv.Data, selectedEventId tv.EventId, writer io.Writer) error {
+func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
+	selectedEventId := tv.EventId(query.Get("selected-event"))
+	wantEvent := query.Get("want-event") != ""
+
 	location, err := timepkg.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		return err
@@ -202,6 +207,7 @@ func renderIndex(data *tv.Data, selectedEventId tv.EventId, writer io.Writer) er
 		Programs:        programs,
 		TimeIntervals:   timeIntervals,
 		SelectedEventId: selectedEventId,
+		WantEvent:       wantEvent,
 	}
 
 	return indexTemplate.Execute(writer, args)

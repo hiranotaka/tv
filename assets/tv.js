@@ -4,7 +4,9 @@ function updatePositions() {
 }
 
 function updateSelectedEvent() {
-    $('.event').parent().load(window.location.href + ' .event', null);
+    var params = { 'want-event': true };
+    $('.event').parent().load(window.location.href + ' .event',
+			      $.param(params));
 }
 
 $(window).scroll(function () {
