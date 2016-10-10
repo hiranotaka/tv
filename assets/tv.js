@@ -18,11 +18,11 @@ $(window).submit(function(event) {
     var target = $(event.target);
     var method = target.prop('method');
     var action = target.prop('action');
-    var params = method == 'get' ? target.serialize() : target.serializeArray();
-    var url = method == 'get' ? './?' + params : './?mode=html' ;
+    var params = method == 'get' ?  null : target.serializeArray();
+    var url = method == 'get' ? './?' + target.serialize() : action;
     window.history.pushState(null, null, url);
     $('.main').parent().load(
-	action + ' .main', params, function() {
+	url + ' .main', params, function() {
 	    updatePositions();
 	});
     $('.event :input').prop('disabled', true);

@@ -31,12 +31,12 @@
                 <div class="event-name">{{.Info.Name}}</div>
                 <div class="event-time">{{.Info.Start.Year | printf "%04d"}}-{{.Info.Start.Month | printf "%02d"}}-{{.Info.Start.Day | printf "%02d"}} {{.Info.Start.Hour | printf "%02d"}}:{{.Info.Start.Minute | printf "%02d"}}</div>
                 <div class="event-description">{{.Info.Description}}</div>{{$rule := $.Data.RuleMatchingEvent .}}{{if $rule}}
-                <form method="post" action="./?mode=html">
+                <form method="post" action="./?mode=html&amp;time={{$.SelectedDay}}">
                   <input type="hidden" name="id" value="{{$rule.Id}}">
                   <input type="hidden" name="deleted" value="yes">
                   <input type="submit" value="Unrecord">
                 </form>{{else}}
-                <form method="post" action="./?mode=html">
+                <form method="post" action="./?mode=html&amp;time={{$.SelectedDay}}">
                   <input type="hidden" name="id" value="{{.Id}}">
                   <input type="hidden" name="program-number" value="{{.Program.Info.Number}}">
                   <input type="hidden" name="start" value="{{.Info.Start}}">

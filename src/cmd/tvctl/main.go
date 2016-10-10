@@ -144,7 +144,7 @@ func processPostHtml(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	http.Redirect(writer, request, "./?mode=html", http.StatusSeeOther)
+	http.Redirect(writer, request, request.URL.String(), http.StatusSeeOther)
 }
 
 func processPost(writer http.ResponseWriter, request *http.Request) {
