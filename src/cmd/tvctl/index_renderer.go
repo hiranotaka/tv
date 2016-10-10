@@ -112,6 +112,9 @@ func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
 		})
 	}
 
+	minTime = minTime.In(location)
+	maxTime = maxTime.In(location)
+
 	for hourOffset := 0; ; hourOffset++ {
 		start := timepkg.Date(minTime.Year(), minTime.Month(), minTime.Day(), minTime.Hour()+hourOffset, 0, 0, 0, location)
 		end := timepkg.Date(minTime.Year(), minTime.Month(), minTime.Day(), minTime.Hour()+hourOffset+1, 0, 0, 0, location)
