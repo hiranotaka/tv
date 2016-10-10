@@ -74,8 +74,8 @@ type indexTemplateArgs struct {
 	Data            *tv.Data
 	Programs        []*tv.Program
 	TimeIntervals   []timeInterval
-	Days            []timepkg.Time
 	SelectedDay     timepkg.Time
+	Days            []timepkg.Time
 	SelectedEventId tv.EventId
 	WantEvent       bool
 }
@@ -223,9 +223,9 @@ func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
 		Data:            data,
 		Programs:        programs,
 		TimeIntervals:   timeIntervals,
-		SelectedEventId: selectedEventId,
-		Days:            days,
 		SelectedDay:     selectedDayStart,
+		Days:            days,
+		SelectedEventId: selectedEventId,
 		WantEvent:       wantEvent,
 	}
 
