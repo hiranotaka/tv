@@ -8,16 +8,18 @@
   <body>
     <div>
       <div class="main">
-	<div class="nav">{{if not $.ExpandDays}}
-	  <div class="nav-head">
-	    <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;expand-days=yes">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▾</a>
-	  </div>{{else}}
-	  <div class="nav-head">
-	    <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▴</a>
+	<div>
+	  <div class="nav">{{if not $.ExpandDays}}
+	    <div class="nav-head">
+	      <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;expand-days=yes">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▾</a>
+	    </div>{{else}}
+	    <div class="nav-head">
+	      <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▴</a>
+	    </div>
+	    <ul class="nav-list">{{range $.Days}}
+	      <li class="{{if .Equal $.SelectedDay}}nav-selected-day{{else}}nav-day{{end}}"><a class="nav-link" href="./?mode=html&amp;time={{.}}">{{.Day}} {{.Weekday}}</a></li>{{end}}
+	    </ul>{{end}}
 	  </div>
-	  <ul class="nav-list">{{range $.Days}}
-	    <li class="{{if .Equal $.SelectedDay}}nav-selected-day{{else}}nav-day{{end}}"><a class="nav-link" href="./?mode=html&amp;time={{.}}">{{.Day}} {{.Weekday}}</a></li>{{end}}
-	  </ul>{{end}}
 	</div>
         <div>
           <div class="event">{{with $.Data.FindEvent $.SelectedEventId}}
