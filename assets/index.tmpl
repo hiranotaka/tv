@@ -7,25 +7,25 @@
   </head>
   <body>
     <div>
-      <div class="main">{{if or (eq $.Want "") (eq $.Want "main") (eq $.Want "nav")}}
+      <div class="main">
 	<div>
 	  <div class="nav">{{if not $.ExpandDays}}
 	    <div class="nav-head">
-	      <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;expand-days=yes" zng-want="nav">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▾</a>
+	      <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;expand-days=yes">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▾</a>
 	    </div>{{else}}
 	    <div class="nav-head">
-	      <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}" zng-want="nav">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▴</a>
+	      <a class="nav-link" href="./?mode=html&amp;time={{$.SelectedDay}}">{{$.SelectedDay.Day}} {{$.SelectedDay.Weekday}} ▴</a>
 	    </div>
 	    <ul class="nav-list">{{range $.Days}}
-	      <li class="{{if .Equal $.SelectedDay}}nav-selected-day{{else}}nav-day{{end}}"><a class="nav-link" href="./?mode=html&amp;time={{.}}" zng-want="main">{{.Day}} {{.Weekday}}</a></li>{{end}}
+	      <li class="{{if .Equal $.SelectedDay}}nav-selected-day{{else}}nav-day{{end}}"><a class="nav-link" href="./?mode=html&amp;time={{.}}">{{.Day}} {{.Weekday}}</a></li>{{end}}
 	    </ul>{{end}}
 	  </div>
-	</div>{{end}}{{if or (eq $.Want "") (eq $.Want "main") (eq $.Want "event")}}
+	</div>
         <div>
           <div class="event">{{with $.Data.FindEvent $.SelectedEventId}}
             <div class="event-widget">
               <div class="event-body">
-                <div class="event-close"><a class="event-close-link" href="./?mode=html&amp;time={{$.SelectedDay}}" zng-want="event">Close</a></div>
+                <div class="event-close"><a class="event-close-link" href="./?mode=html&amp;time={{$.SelectedDay}}">Close</a></div>
                 <div class="event-program">{{.Program.Info.Title}}</div>
                 <div class="event-name">{{.Info.Name}}</div>
                 <div class="event-time">{{.Info.Start.Year | printf "%04d"}}-{{.Info.Start.Month | printf "%02d"}}-{{.Info.Start.Day | printf "%02d"}} {{.Info.Start.Hour | printf "%02d"}}:{{.Info.Start.Minute | printf "%02d"}}</div>
@@ -45,11 +45,11 @@
                   <label><input type="checkbox" name="weekly" value="yes">Weekly</label>
                   <input type="submit" value="Record">
                 </form>{{else}}
-		You cannot record this due to an overlapping event: <a href="./?mode=html&time={{$.SelectedDay}}&selected-event={{$overlappingEvent.Id}}" zng-want="event">{{$overlappingEvent.Info.Name}}</a>{{end}}{{end}}
+		You cannot record this due to an overlapping event: <a href="./?mode=html&time={{$.SelectedDay}}&selected-event={{$overlappingEvent.Id}}">{{$overlappingEvent.Info.Name}}</a>{{end}}{{end}}
               </div>
             </div>{{end}}
           </div>
-        </div>{{end}}{{if or (eq $.Want "") (eq $.Want "main") }}
+        </div>
         <table class="main-table">
           <tr>
             <td class="main-hour main-program">
@@ -63,20 +63,20 @@
               {{.Hour}}
             </td>{{end}}{{range $index, $program := $.Programs}}{{with index $interval.Start.StartingSlotMap $program.Id}}{{if .Event}}{{$rule := $.Data.RuleMatchingEvent .Event}}{{if $rule}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-with-matched-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-              <a class="main-slot-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;selected-event={{.Event.Id}}" zng-want="event">
+              <a class="main-slot-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;selected-event={{.Event.Id}}">
                 <span class="main-slot-time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
                 {{.Event.Info.Name}}
               </a>
             </td>{{else}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-with-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)">
-              <a class="main-slot-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;selected-event={{.Event.Id}}" zng-want="event">
+              <a class="main-slot-link" href="./?mode=html&amp;time={{$.SelectedDay}}&amp;selected-event={{.Event.Id}}">
                 <span class="main-slot-time">{{.Event.Info.Start.Minute | printf "%02d"}}</span>
                 {{.Event.Info.Name}}
               </a>
             </td>{{end}}{{else}}
             <td rowspan="{{.TimeInterval.Span}}" class="main-slot-without-event" style="left: calc(20px + {{$index}} * 100px); height: calc({{(.TimeInterval.End.Time.Sub .TimeInterval.Start.Time).Minutes}} * 3px - 1px)"></td>{{end}}{{end}}{{end}}
           </tr>{{end}}
-        </table>{{end}}
+        </table>
       </div>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script>

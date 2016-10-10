@@ -3,10 +3,8 @@ function updatePositions() {
     $('td.main-program').css('top', $(window).scrollTop() + 'px');
 }
 
-function updateElement(className) {
-    var params = { want: className };
-    $('.' + className).parent().load(
-	window.location.href + ' .' + className, $.param(params), function() {
+function updateMain() {
+    $('.main').parent().load(window.location.href + ' .main', function() {
 	updatePositions();
     });
 }
@@ -33,7 +31,7 @@ $(window).click(function(event) {
     var href = target.prop('href');
     if (href) {
 	window.history.pushState(null, null, href);
-	updateElement(target.attr('zng-want'));
+	updateMain();
 	event.preventDefault();
     }
 });
