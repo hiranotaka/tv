@@ -75,7 +75,6 @@ type indexTemplateArgs struct {
 	Programs        []*tv.Program
 	TimeIntervals   []timeInterval
 	SelectedEventId tv.EventId
-	Location        *timepkg.Location
 	WantEvent       bool
 }
 
