@@ -34,6 +34,7 @@
                 <form method="post" action="./?mode=html&amp;time={{$.SelectedDay}}">
                   <input type="hidden" name="id" value="{{$rule.Id}}">
                   <input type="hidden" name="deleted" value="yes">
+                  <label><input type="checkbox" name="weekly" value="yes" disabled{{if $rule.Config.Weekly}} checked{{end}}>Weekly</label>
                   <input type="submit" value="Unrecord">
                 </form>{{else}}{{$overlappingEvent := $.Data.OverlappingMatchedEvent .}}{{if not $overlappingEvent}}
                 <form method="post" action="./?mode=html&amp;time={{$.SelectedDay}}">
