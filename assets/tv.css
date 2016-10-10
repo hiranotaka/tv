@@ -2,8 +2,27 @@ body {
     font-size: 12px;
     margin: 0;
 }
+div.nav {
+    background-color: #fff;
+    height: 24px;
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+    z-index: 3;
+}
+div.nav-head {
+    float: left;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 0 4px;
+}
+div.nav-form {
+    float: right;
+}
 table.main-table {
     display: block;
+    position: absolute;
+    top: 24px;
 }
 table.main-table > tbody {
     display: block;

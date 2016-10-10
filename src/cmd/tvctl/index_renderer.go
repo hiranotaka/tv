@@ -74,49 +74,63 @@ type indexTemplateArgs struct {
 	Data            *tv.Data
 	Programs        []*tv.Program
 	TimeIntervals   []timeInterval
+	Days            []timepkg.Time
+	SelectedDay     timepkg.Time
 	SelectedEventId tv.EventId
 	WantEvent       bool
 }
 
 func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
+	now := timepkg.Now()
+
+	var selectedTime timepkg.Time
+	selectedTimeStr := query.Get("time")
+	if selectedTimeStr != "" {
+		var err error
+		selectedTime, err = timepkg.Parse("2006-01-02 15:04:05.999999999 -0700 MST", selectedTimeStr)
+		if err != nil {
+			return err
+		}
+	} else {
+		selectedTime = now
+	}
 	selectedEventId := tv.EventId(query.Get("selected-event"))
 	wantEvent := query.Get("want-event") != ""
 
-	location, err := timepkg.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		return err
-	}
+	selectedDayStart := timepkg.Date(selectedTime.Year(), selectedTime.Month(), selectedTime.Day(), 0, 0, 0, 0, selectedTime.Location())
+	selectedDayEnd := timepkg.Date(selectedTime.Year(), selectedTime.Month(), selectedTime.Day()+1, 0, 0, 0, 0, selectedTime.Location())
 
 	programs := data.Programs()
 	sort.Sort(programsByNumberAsc(programs))
 
 	var times []*time
-
-	var minTime timepkg.Time
-	var maxTime timepkg.Time
 	for _, event := range data.Events() {
-		if minTime.IsZero() || event.Info.Start.Before(minTime) {
-			minTime = event.Info.Start
+		start := event.Info.Start
+		end := event.End()
+		if !selectedDayStart.Before(end) || !start.Before(selectedDayEnd) {
+			continue
 		}
-		if maxTime.IsZero() || event.End().After(maxTime) {
-			maxTime = event.End()
+
+		if start.Before(selectedDayStart) {
+			start = selectedDayStart
+		}
+
+		if selectedDayEnd.Before(end) {
+			end = selectedDayEnd
 		}
 
 		times = append(times, &time{
-			Time:           event.Info.Start,
+			Time:           start,
 			startingEvents: []*tv.Event{event},
 		}, &time{
-			Time:         event.End(),
+			Time:         end,
 			endingEvents: []*tv.Event{event},
 		})
 	}
 
-	minTime = minTime.In(location)
-	maxTime = maxTime.In(location)
-
-	for hourOffset := 0; ; hourOffset++ {
-		start := timepkg.Date(minTime.Year(), minTime.Month(), minTime.Day(), minTime.Hour()+hourOffset, 0, 0, 0, location)
-		end := timepkg.Date(minTime.Year(), minTime.Month(), minTime.Day(), minTime.Hour()+hourOffset+1, 0, 0, 0, location)
+	for hourOffset := 0; hourOffset < 24; hourOffset++ {
+		start := timepkg.Date(selectedDayStart.Year(), selectedDayStart.Month(), selectedDayStart.Day(), selectedDayStart.Hour()+hourOffset, 0, 0, 0, selectedDayStart.Location())
+		end := timepkg.Date(selectedDayStart.Year(), selectedDayStart.Month(), selectedDayStart.Day(), selectedDayStart.Hour()+hourOffset+1, 0, 0, 0, selectedDayStart.Location())
 		hour := &hour{Hour: start.Hour()}
 		times = append(times, &time{
 			Time:         start,
@@ -125,10 +139,6 @@ func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
 			Time:       end,
 			EndingHour: hour,
 		})
-
-		if !end.Before(maxTime) {
-			break
-		}
 	}
 
 	sort.Sort(timesAsc(times))
@@ -204,11 +214,18 @@ func renderIndex(data *tv.Data, query url.Values, writer io.Writer) error {
 		}
 	}
 
+	var days []timepkg.Time
+	for dayOffset := 0; dayOffset < 7; dayOffset++ {
+		days = append(days, timepkg.Date(now.Year(), now.Month(), now.Day()+dayOffset, 0, 0, 0, 0, now.Location()))
+	}
+
 	args := &indexTemplateArgs{
 		Data:            data,
 		Programs:        programs,
 		TimeIntervals:   timeIntervals,
 		SelectedEventId: selectedEventId,
+		Days:            days,
+		SelectedDay:     selectedDayStart,
 		WantEvent:       wantEvent,
 	}
 
