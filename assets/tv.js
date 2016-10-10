@@ -14,9 +14,10 @@ updatePositions();
 
 $(window).submit(function(event) {
     var target = $(event.target);
+    var action = target.prop('action');
     window.history.pushState(null, null, './?mode=html');
     $('.main').parent().load(
-	'./?mode=html .main', target.serializeArray(), function() {
+	action + ' .main', target.serializeArray(), function() {
 	    updatePositions();
 	});
     $('.event :input').prop('disabled', true);
