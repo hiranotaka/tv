@@ -95,6 +95,10 @@ func (event *Event) IsCurrent(now time.Time) bool {
 	return event.Info.Start.Before(now) && now.Before(event.End())
 }
 
+func (event *Event) Overlaps(otherEvent *Event) bool {
+	return otherEvent.Info.Start.Before(event.End()) && event.Info.Start.Before(otherEvent.End())
+}
+
 func (program *Program) Id() ProgramId {
 	return ProgramId(fmt.Sprintf("%05d@%s@%s", program.IndexInStream, program.Stream.Info.Time.String(), program.Stream.Id))
 }
@@ -314,4 +318,16 @@ func (data *Data) NextMatchedEvent(now time.Time) (nextEvent *Event) {
 		}
 	}
 	return
+}
+
+func (data *Data) OverlappingMatchedEvent(theEvent *Event) *Event {
+	for _, event := range data.Events() {
+		if event.Info == nil {
+			continue
+		}
+		if theEvent.Overlaps(event) && data.RuleMatchingEvent(event) != nil {
+			return event
+		}
+	}
+	return nil
 }

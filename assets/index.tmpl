@@ -35,7 +35,7 @@
                   <input type="hidden" name="id" value="{{$rule.Id}}">
                   <input type="hidden" name="deleted" value="yes">
                   <input type="submit" value="Unrecord">
-                </form>{{else}}
+                </form>{{else}}{{$overlappingEvent := $.Data.OverlappingMatchedEvent .}}{{if not $overlappingEvent}}
                 <form method="post" action="./?mode=html&amp;time={{$.SelectedDay}}">
                   <input type="hidden" name="id" value="{{.Id}}">
                   <input type="hidden" name="program-number" value="{{.Program.Info.Number}}">
@@ -44,7 +44,8 @@
                   <input type="hidden" name="name" value="{{.Info.Name}}">
                   <label><input type="checkbox" name="weekly" value="yes">Weekly</label>
                   <input type="submit" value="Record">
-                </form>{{end}}
+                </form>{{else}}
+		You cannot record this due to an overlapping event: <a href="./?mode=html&time={{$.SelectedDay}}&selected-event={{$overlappingEvent.Id}}">{{$overlappingEvent.Info.Name}}</a>{{end}}{{end}}
               </div>
             </div>{{end}}
           </div>
