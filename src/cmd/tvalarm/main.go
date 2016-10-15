@@ -61,7 +61,7 @@ func main() {
 		}
 		state = newState
 
-		timer := time.NewTimer(state.end.Sub(time.Now()))
+		timer := time.NewTimer(state.end.Sub(time.Now()) - 5 * time.Minute)
 
 		log.Printf("Yielding...")
 
