@@ -19,7 +19,7 @@ $(window).submit(function(event) {
     var action = target.prop('action');
     window.history.pushState(null, null, action);
     $('.main').parent().load(
-	url + ' .main', target.serializeArray(), function() {
+	action + ' .main', target.serializeArray(), function() {
 	    updatePositions();
 	});
     $('.event :input').prop('disabled', true);
