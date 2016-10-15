@@ -51,7 +51,7 @@ func main() {
 	var state *state
 
 	for {
-		newState := getState(data, time.Now().Add(-5 * time.Minute))
+		newState := getState(data, time.Now().Add(5 * time.Minute))
 		if (state == nil || !state.alive) && newState.alive {
 			log.Printf("Waking up TV...")
 			if err := exec.Command("wakeonlan", "d8:cb:8a:e7:bc:ab").Run(); err != nil {
