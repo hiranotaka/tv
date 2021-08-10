@@ -71,6 +71,7 @@ func (parser *programInfoParser) parseLine(line string) error {
 
 func (task *ScanTask) parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, error) {
 	var programsInfo []*tv.ProgramInfo
+	programInfoMap := make(map[int32]*tv.ProgramInfo)
 	var sectionParser sectionParser
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -84,18 +85,26 @@ func (task *ScanTask) parseStreamInfo(scanner *bufio.Scanner) (*tv.StreamInfo, e
 				}, nil
 			}
 
-			if matches := regexp.MustCompile(`^EPG (.*) \[Program (\d+)\]$`).FindStringSubmatch(section); matches != nil {
+			sectionParser = nil
+			if matches := regexp.MustCompile(`^EPG (.*) \[Program (\d+)\] \[Table (\d+)\]$`).FindStringSubmatch(section); matches != nil {
 				serviceName := matches[1]
 				programNumber, _ := strconv.ParseInt(matches[2], 10, 32)
+				tableId, _ := strconv.ParseInt(matches[3], 10, 32)
 
-				programInfo := &tv.ProgramInfo{
-					Number: int32(programNumber),
-					Title:  serviceName,
+				if tableId < 0x50 || tableId >= 0x60 {
+					continue
 				}
-				programsInfo = append(programsInfo, programInfo)
+
+				programInfo := programInfoMap[int32(programNumber)]
+				if programInfo == nil {
+					programInfo = &tv.ProgramInfo{
+						Number: int32(programNumber),
+						Title:  serviceName,
+					}
+					programsInfo = append(programsInfo, programInfo)
+					programInfoMap[int32(programNumber)] = programInfo
+				}
 				sectionParser = &programInfoParser{programInfo: programInfo}
-			} else {
-				sectionParser = nil
 			}
 		}
 
@@ -139,7 +148,7 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, er
 		return nil, err
 	}
 
-	cmd := exec.Command("env", "LANG=C", "vlc", "-I", "rc", "--no-audio", "--no-video", url)
+	cmd := exec.Command("env", "LANG=C", "vlc", "-I", "oldrc", "--rc-fake-tty", "--no-audio", "--no-video", url)
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		log.Fatal("cmd.StdinPipe failed: %v", err)
