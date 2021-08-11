@@ -142,8 +142,8 @@ func (task *ScanTask) communicate(cancel <-chan struct{}, in io.Writer, scanner 
 	return streamInfo, nil
 }
 
-func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, error) {
-	url, err := task.Stream.Url()
+func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}, assignment int32) (*tv.StreamInfo, error) {
+	url, err := task.Stream.Url(assignment)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,19 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}) (*tv.StreamInfo, er
 	}
 }
 
-func (task *ScanTask) Run(cancel <-chan struct{}) error {
+func (task *ScanTask) Requirements() []int32 {
+	return []int32{task.Stream.Config.System}
+}
+
+func (task *ScanTask) Equals(otherTask Task) bool {
+	otherScanTask, ok := otherTask.(*ScanTask)
+	if !ok {
+		return false
+	}
+	return otherScanTask.Stream.Id == task.Stream.Id
+}
+
+func (task *ScanTask) Run(cancel <-chan struct{}, assignments []int32) error {
 	data := &tv.Data{
 		StreamStateMap: map[tv.StreamId]*tv.StreamState{
 			task.Stream.Id: &tv.StreamState{
@@ -225,7 +237,7 @@ func (task *ScanTask) Run(cancel <-chan struct{}) error {
 	}
 
 	log.Printf("Scanning stream info: %s ...", task.Stream.Id)
-	streamInfo, err := task.scanStreamInfo(cancel)
+	streamInfo, err := task.scanStreamInfo(cancel, assignments[0])
 	if err == nil {
 		data.InsertStreamInfo(task.Stream.Id, streamInfo)
 	} else if err.Error() == "Cancelled" {

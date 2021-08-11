@@ -18,8 +18,20 @@ func (task *RecordTask) getFile() string {
 	return "/srv/tv/" + task.Event.Info.Name + ".ts"
 }
 
-func (task *RecordTask) Run(cancel <-chan struct{}) error {
-	url, err := task.Event.Program.Stream.Url()
+func (task *RecordTask) Requirements() []int32 {
+	return []int32{task.Event.Program.Stream.Config.System}
+}
+
+func (task *RecordTask) Equals(otherTask Task) bool {
+	otherRecordTask, ok := otherTask.(*RecordTask)
+	if !ok {
+		return false
+	}
+	return otherRecordTask.Event.Program.Info.Number == task.Event.Program.Info.Number && otherRecordTask.Event.Info.Name == task.Event.Info.Name
+}
+
+func (task *RecordTask) Run(cancel <-chan struct{}, assignments []int32) error {
+	url, err := task.Event.Program.Stream.Url(assignments[0])
 	if err != nil {
 		return err
 	}

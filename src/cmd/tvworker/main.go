@@ -2,83 +2,109 @@ package main
 
 import (
 	"log"
+	"sort"
 	"time"
 	"zng.jp/tv"
 	"zng.jp/tv/db"
 )
 
-func isRecordTaskForEvent(task Task, event *tv.Event) bool {
-	if recordTask, ok := task.(*RecordTask); ok {
-		return recordTask.Event.Program.Info.Number == event.Program.Info.Number && recordTask.Event.Info.Name == event.Info.Name
-	} else {
-		return false
-	}
-}
-
-func isScanTask(task Task) bool {
-	_, ok := task.(*ScanTask)
-	return ok
-}
-
 type job struct {
-	task Task
-	end  time.Time
+	task        Task
+	assignments []int32
+	canceling   bool
+	cancel      chan struct{}
 }
 
-func pickNextJob(data *tv.Data, currentJob *job, now time.Time) *job {
-	idleEnd := now.Add(24 * time.Hour)
+type minTimeTracker struct {
+	time time.Time
+}
 
-	if event := data.CurrentMatchedEvent(now); event != nil {
-		if currentJob != nil && isRecordTaskForEvent(currentJob.task, event) {
-			return &job{
-				task: currentJob.task,
-				end:  event.End(),
-			}
-		} else {
-			return &job{
-				task: &RecordTask{Event: event},
-				end:  event.End(),
-			}
+func (tracker *minTimeTracker) Update(t time.Time) {
+	if t.Before(tracker.time) {
+		tracker.time = t
+	}
+}
+
+type streamsByStateTime []*tv.Stream
+
+func (streams streamsByStateTime) Len() int {
+	return len(streams)
+}
+func (streams streamsByStateTime) Swap(i, j int) {
+	streams[i], streams[j] = streams[j], streams[i]
+}
+func (streams streamsByStateTime) Less(i, j int) bool {
+	if streams[i].State == nil || streams[j].State == nil {
+		return streams[j].State != nil
+	} else {
+		return streams[i].State.Time.Before(streams[j].State.Time)
+	}
+}
+
+type scheduler struct {
+	tasks     []Task
+	resources map[int32]int
+}
+
+func (s *scheduler) MaybeAdd(task Task) {
+	if s.resources == nil {
+		s.resources = map[int32]int{
+			tv.ISDB_T: 2,
+			tv.ISDB_S: 2,
 		}
 	}
-
-	if event := data.NextMatchedEvent(now); event != nil {
-		idleEnd = event.Info.Start
-	}
-
-	if currentJob != nil && isScanTask(currentJob.task) {
-		if idleEnd.Before(currentJob.end) {
-			return &job{
-				task: currentJob.task,
-				end:  idleEnd,
-			}
-		} else {
-			return currentJob
+	for _, requirement := range task.Requirements() {
+		if s.resources[requirement] <= 0 {
+			return
 		}
 	}
+	for _, requirement := range task.Requirements() {
+		s.resources[requirement]--
+	}
+	s.tasks = append(s.tasks, task)
+}
 
-	stream := data.StreamWithoutStateOrWithOldestState()
-	if stream != nil {
+func schedule(data *tv.Data, now time.Time) ([]Task, time.Time) {
+	nextTime := minTimeTracker{time: now.Add(24 * time.Hour)}
+	scheduler := scheduler{}
+
+	var eventsToRecord []*tv.Event
+	for _, event := range data.Events() {
+		if event.Info == nil {
+			continue
+		}
+		if data.RuleMatchingEvent(event) == nil {
+			continue
+		}
+		if event.IsCurrent(now) {
+			eventsToRecord = append(eventsToRecord, event)
+			nextTime.Update(event.End())
+		} else if now.Before(event.Info.Start) {
+			nextTime.Update(event.Info.Start)
+		}
+	}
+	for _, event := range eventsToRecord {
+		scheduler.MaybeAdd(&RecordTask{Event: event})
+	}
+
+	var streamsToScan []*tv.Stream
+	for _, stream := range data.Streams() {
 		var scanStart time.Time
 		if stream.State != nil {
 			scanStart = stream.State.Time.Add(3 * time.Hour)
 		}
 		if scanStart.Before(now) {
-			if idleEnd.Sub(now) > 305*time.Second {
-				return &job{
-					task: &ScanTask{Time: now, Stream: stream},
-					end:  now.Add(305 * time.Second),
-				}
-			}
-		} else if idleEnd.Sub(scanStart) > 305*time.Second {
-			idleEnd = scanStart
+			streamsToScan = append(streamsToScan, stream)
+		} else {
+			nextTime.Update(scanStart)
 		}
 	}
-
-	return &job{
-		task: &IdleTask{},
-		end:  idleEnd,
+	sort.Sort(streamsByStateTime(streamsToScan))
+	for _, stream := range streamsToScan {
+		scheduler.MaybeAdd(&ScanTask{Time: now, Stream: stream})
 	}
+
+	return scheduler.tasks, nextTime.time
 }
 
 func main() {
@@ -93,40 +119,102 @@ func main() {
 	}()
 
 	data := &tv.Data{}
-	var job *job
-	var runCancel chan struct{}
-	var runDone chan struct{}
-	var runErr error
+	jobs := []*job{}
+	resources := map[int32][]int32{
+		tv.ISDB_S: []int32{0, 1},
+		tv.ISDB_T: []int32{0, 1},
+	}
+	jobDone := make(chan *job)
 
 	for {
-		nextJob := pickNextJob(data, job, time.Now())
-		if job != nil && job.task != nextJob.task {
-			log.Print("Terminating task...")
-			close(runCancel)
-			<-runDone
+		tasks, nextTime := schedule(data, time.Now())
+
+		for _, job := range jobs {
+			shouldRun := false
+			for _, task := range tasks {
+				if job.task.Equals(task) {
+					shouldRun = true
+					break
+				}
+			}
+
+			if shouldRun {
+				continue
+			}
+
+			if job.canceling {
+				continue
+			}
+
+			log.Printf("Terminating task...", job.task)
+			close(job.cancel)
+			job.canceling = true
 		}
-		if job == nil || job.task != nextJob.task {
-			runCancel = make(chan struct{})
-			runDone = make(chan struct{})
+
+		for _, task := range tasks {
+			running := false
+			for _, job := range jobs {
+				if task.Equals(job.task) {
+					running = true
+					break
+				}
+			}
+
+			if running {
+				continue
+			}
+
+			runnable := true
+			for _, requirement := range task.Requirements() {
+				if len(resources[requirement]) <= 0 {
+					runnable = false
+				}
+			}
+
+			if !runnable {
+				continue
+			}
+
+			assignments := make([]int32, len(task.Requirements()))
+			for i, requirement := range task.Requirements() {
+				assignments[i] = resources[requirement][len(resources[requirement])-1]
+				resources[requirement] = resources[requirement][0 : len(resources[requirement])-1]
+			}
+
+			cancel := make(chan struct{})
+
+			job := &job{
+				task:        task,
+				assignments: assignments,
+				cancel:      cancel,
+			}
+
+			jobs = append(jobs, job)
+
 			go func() {
-				runErr = nextJob.task.Run(runCancel)
-				close(runDone)
+				job.task.Run(cancel, assignments)
+				jobDone <- job
 			}()
 		}
-		job = nextJob
 
-		timer := time.NewTimer(job.end.Sub(time.Now()))
+		timer := time.NewTimer(nextTime.Sub(time.Now()))
 
 		select {
-		case <-runDone:
+		case doneJob := <-jobDone:
 			timer.Stop()
-			job = nil
-		case <-timer.C:
-			log.Print("Terminating task...")
-			close(runCancel)
-			<-runDone
+			for i, job := range jobs {
+				if doneJob == job {
+					jobs[i] = jobs[len(jobs)-1]
+					jobs = jobs[0 : len(jobs)-1]
+					break
+				}
+			}
+			for i, requirement := range doneJob.task.Requirements() {
+				resources[requirement] = append(resources[requirement], doneJob.assignments[i])
+			}
 
-			job = nil
+		case <-timer.C:
+
 		case <-notificationQueue:
 			timer.Stop()
 			log.Print("Fetching data...")

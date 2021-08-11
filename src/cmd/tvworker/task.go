@@ -1,5 +1,7 @@
 package main
 
 type Task interface {
-	Run(<-chan struct{}) error
+	Equals(Task) bool
+	Requirements() []int32
+	Run(<-chan struct{}, []int32) error
 }

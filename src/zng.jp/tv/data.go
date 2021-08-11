@@ -3,6 +3,7 @@ package tv
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -125,13 +126,13 @@ func (stream *Stream) Programs() (programs []*Program) {
 	return
 }
 
-func (stream *Stream) Url() (string, error) {
+func (stream *Stream) Url(assignment int32) (string, error) {
 	config := stream.Config
 	switch config.System {
 	case ISDB_T:
-		return fmt.Sprintf("isdb-t://adapter=3:frequency=%d", config.Frequency), nil
+		return fmt.Sprintf("isdb-t://adapter=%d:frequency=%d", assignment*2+1, config.Frequency), nil
 	case ISDB_S:
-		return fmt.Sprintf("isdb-s://adapter=2:frequency=%d:ts-id=%d", config.Frequency, config.TsId), nil
+		return fmt.Sprintf("isdb-s://adapter=%d:frequency=%d:ts-id=%d", assignment*2, config.Frequency, config.TsId), nil
 	default:
 		return "", errors.New("Unknown system")
 	}
@@ -281,23 +282,6 @@ func (data *Data) FindEvent(id EventId) *Event {
 	return nil
 }
 
-func (data *Data) StreamWithoutStateOrWithOldestState() *Stream {
-	for _, stream := range data.Streams() {
-		if stream.State == nil {
-			return stream
-		}
-	}
-
-	var streamWithOldestState *Stream
-	for _, stream := range data.Streams() {
-		if streamWithOldestState == nil || stream.State.Time.Before(streamWithOldestState.State.Time) {
-			streamWithOldestState = stream
-		}
-	}
-
-	return streamWithOldestState
-}
-
 func (data *Data) RuleMatchingEvent(event *Event) *Rule {
 	for _, rule := range data.Rules() {
 		if rule.Config == nil {
@@ -310,37 +294,66 @@ func (data *Data) RuleMatchingEvent(event *Event) *Rule {
 	return nil
 }
 
-func (data *Data) CurrentMatchedEvent(now time.Time) *Event {
-	for _, event := range data.Events() {
-		if event.Info == nil {
-			continue
-		}
-		if event.IsCurrent(now) && data.RuleMatchingEvent(event) != nil {
-			return event
-		}
-	}
-	return nil
+type operation struct {
+	t            time.Time
+	addedEvent   *Event
+	removedEvent *Event
+}
+type operationsByTime []*operation
+
+func (operations operationsByTime) Len() int {
+	return len(operations)
+}
+func (operations operationsByTime) Swap(i, j int) {
+	operations[i], operations[j] = operations[j], operations[i]
+}
+func (operations operationsByTime) Less(i, j int) bool {
+	return operations[i].t.Before(operations[j].t)
 }
 
-func (data *Data) NextMatchedEvent(now time.Time) (nextEvent *Event) {
+func (data *Data) OverlappingMatchedEvents(theEvent *Event) []*Event {
+	operations := []*operation{}
 	for _, event := range data.Events() {
 		if event.Info == nil {
 			continue
 		}
-		if now.Before(event.Info.Start) && (nextEvent == nil || event.Info.Start.Before(nextEvent.Info.Start)) && data.RuleMatchingEvent(event) != nil {
-			nextEvent = event
+		if event.Program.Stream.Config.System != theEvent.Program.Stream.Config.System {
+			continue
 		}
+		if !theEvent.Overlaps(event) {
+			continue
+		}
+		if data.RuleMatchingEvent(event) == nil {
+			continue
+		}
+		operations = append(operations, &operation{
+			t:          event.Info.Start,
+			addedEvent: event,
+		}, &operation{
+			t:            event.End(),
+			removedEvent: event,
+		})
 	}
-	return
-}
 
-func (data *Data) OverlappingMatchedEvent(theEvent *Event) *Event {
-	for _, event := range data.Events() {
-		if event.Info == nil {
-			continue
-		}
-		if theEvent.Overlaps(event) && data.RuleMatchingEvent(event) != nil {
-			return event
+	sort.Sort(operationsByTime(operations))
+
+	resources := 2
+	events := []*Event{}
+	for _, operation := range operations {
+		if operation.addedEvent != nil {
+			events = append(events, operation.addedEvent)
+			resources--
+			if resources <= 0 {
+				return events
+			}
+		} else if operation.removedEvent != nil {
+			resources++
+			for i, event := range events {
+				if event == operation.removedEvent {
+					events[i] = events[len(events)-1]
+					events = events[0 : len(events)-1]
+				}
+			}
 		}
 	}
 	return nil

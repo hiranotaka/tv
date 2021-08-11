@@ -35,7 +35,7 @@
                   <input type="hidden" name="deleted" value="yes">
                   <label><input type="checkbox" name="weekly" value="yes" disabled{{if $rule.Config.Weekly}} checked{{end}}>Weekly</label>
                   <input type="submit" value="Unrecord">
-                </form>{{else}}{{$overlappingEvent := $.Data.OverlappingMatchedEvent .}}{{if not $overlappingEvent}}
+                </form>{{else}}{{$overlappingEvents := $.Data.OverlappingMatchedEvents .}}{{if not $overlappingEvents}}
                 <form method="post" action="./?mode=html&amp;time={{$.SelectedDay}}">
                   <input type="hidden" name="id" value="{{.Id}}">
                   <input type="hidden" name="program-number" value="{{.Program.Info.Number}}">
@@ -45,7 +45,10 @@
                   <label><input type="checkbox" name="weekly" value="yes">Weekly</label>
                   <input type="submit" value="Record">
                 </form>{{else}}
-		You cannot record this due to an overlapping event: <a href="./?mode=html&time={{$.SelectedDay}}&selected-event={{$overlappingEvent.Id}}">{{$overlappingEvent.Info.Name}}</a>{{end}}{{end}}
+		You cannot record this due to overlapping events:
+		<ul>{{range $overlappingEvents}}
+		  <li><a href="./?mode=html&time={{$.SelectedDay}}&selected-event={{.Id}}">{{.Info.Name}}</a></li>{{end}}
+		</ul>{{end}}{{end}}
               </div>
             </div>{{end}}
           </div>
