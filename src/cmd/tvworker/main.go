@@ -13,7 +13,7 @@ import (
 
 type command struct {
 	deleted       bool
-	writer        io.Writer
+	writer        chan io.Writer
 	programNumber int32
 }
 
@@ -73,7 +73,7 @@ func (s *scheduler) MaybeAdd(task Task) {
 	s.tasks = append(s.tasks, task)
 }
 
-func schedule(data *tv.Data, commands map[io.Writer]*command, now time.Time) ([]Task, time.Time) {
+func schedule(data *tv.Data, commands map[chan io.Writer]*command, now time.Time) ([]Task, time.Time) {
 	nextTime := minTimeTracker{time: now.Add(24 * time.Hour)}
 	scheduler := scheduler{}
 
@@ -141,15 +141,19 @@ func (handler *commandHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 		return
 	}
 	writer.Header().Set("Content-Type", "video/mp2t")
+	writerSemaphore := make(chan io.Writer, 1)
+	writerSemaphore <- writer
 	handler.commandQueue <- &command{
-		writer:        writer,
+		writer:        writerSemaphore,
 		programNumber: int32(programNumber),
 	}
 	<-request.Context().Done()
 	handler.commandQueue <- &command{
 		deleted: true,
-		writer:  writer,
+		writer:  writerSemaphore,
 	}
+	<-writerSemaphore
+	close(writerSemaphore)
 }
 
 func listenCommands(commandQueue chan<- *command) error {
@@ -174,7 +178,7 @@ func main() {
 	}()
 
 	data := &tv.Data{}
-	commands := make(map[io.Writer]*command)
+	commands := make(map[chan io.Writer]*command)
 	jobs := []*job{}
 	resources := map[int32][]int32{
 		tv.ISDB_S: []int32{0, 1},

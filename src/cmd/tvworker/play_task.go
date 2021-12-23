@@ -13,7 +13,7 @@ import (
 
 type PlayTask struct {
 	Program *tv.Program
-	Writer  io.Writer
+	Writer  chan io.Writer
 }
 
 func (task *PlayTask) Requirements() []int32 {
@@ -34,8 +34,14 @@ func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) error {
 		return err
 	}
 
+	writer, ok := <-task.Writer
+	if !ok {
+		return nil
+	}
+	defer func() { task.Writer <- writer }()
+
 	cmd := exec.Command("env", "LANG=C", "vlc", "-I", "rc", "--sout", "#standard{access=file,dst=-,mux=ts}", "--no-sout-all", "--programs", strconv.FormatInt(int64(task.Program.Info.Number), 10), url)
-	cmd.Stdout = task.Writer
+	cmd.Stdout = writer
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		log.Fatal("StdinPipe failed: %v", err)
