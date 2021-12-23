@@ -1,12 +1,20 @@
 package main
 
 import (
+	"io"
 	"log"
+	"net/http"
 	"sort"
 	"time"
 	"zng.jp/tv"
 	"zng.jp/tv/db"
 )
+
+type command struct {
+	deleted bool
+	writer  io.Writer
+	stream  tv.StreamId
+}
 
 type job struct {
 	task        Task
@@ -64,7 +72,7 @@ func (s *scheduler) MaybeAdd(task Task) {
 	s.tasks = append(s.tasks, task)
 }
 
-func schedule(data *tv.Data, now time.Time) ([]Task, time.Time) {
+func schedule(data *tv.Data, commands map[io.Writer]*command, now time.Time) ([]Task, time.Time) {
 	nextTime := minTimeTracker{time: now.Add(24 * time.Hour)}
 	scheduler := scheduler{}
 
@@ -87,6 +95,16 @@ func schedule(data *tv.Data, now time.Time) ([]Task, time.Time) {
 		scheduler.MaybeAdd(&RecordTask{Event: event})
 	}
 
+	streams := make(map[tv.StreamId]*tv.Stream)
+	for _, stream := range data.Streams() {
+		streams[stream.Id] = stream
+	}
+	for _, command := range commands {
+		if stream, ok := streams[command.stream]; ok {
+			scheduler.MaybeAdd(&PlayTask{Writer: command.writer, Stream: stream})
+		}
+	}
+
 	var streamsToScan []*tv.Stream
 	for _, stream := range data.Streams() {
 		var scanStart time.Time
@@ -107,6 +125,33 @@ func schedule(data *tv.Data, now time.Time) ([]Task, time.Time) {
 	return scheduler.tasks, nextTime.time
 }
 
+type commandHandler struct {
+	commandQueue chan<- *command
+}
+
+func (handler *commandHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if request.URL.Path[0] != '/' {
+		http.NotFound(writer, request)
+		return
+	}
+	streamId := tv.StreamId(request.URL.Path[1:])
+	writer.Header().Set("Content-Type", "video/mp2t")
+	handler.commandQueue <- &command{
+		writer: writer,
+		stream: streamId,
+	}
+	<-request.Context().Done()
+	handler.commandQueue <- &command{
+		deleted: true,
+		writer:  writer,
+		stream:  streamId,
+	}
+}
+
+func listenCommands(commandQueue chan<- *command) error {
+	return http.ListenAndServe(":8080", &commandHandler{commandQueue: commandQueue})
+}
+
 func main() {
 	notificationQueue := make(chan struct{})
 	go func() {
@@ -118,7 +163,14 @@ func main() {
 		}
 	}()
 
+	commandQueue := make(chan *command)
+	go func() {
+		err := listenCommands(commandQueue)
+		log.Fatal("listenCommands failed: %v", err)
+	}()
+
 	data := &tv.Data{}
+	commands := make(map[io.Writer]*command)
 	jobs := []*job{}
 	resources := map[int32][]int32{
 		tv.ISDB_S: []int32{0, 1},
@@ -127,7 +179,7 @@ func main() {
 	jobDone := make(chan *job)
 
 	for {
-		tasks, nextTime := schedule(data, time.Now())
+		tasks, nextTime := schedule(data, commands, time.Now())
 
 		for _, job := range jobs {
 			shouldRun := false
@@ -224,6 +276,14 @@ func main() {
 				break
 			}
 			data = newData
+
+		case command := <-commandQueue:
+			timer.Stop()
+			if command.deleted {
+				delete(commands, command.writer)
+			} else {
+				commands[command.writer] = command
+			}
 		}
 	}
 }
