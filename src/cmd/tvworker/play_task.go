@@ -6,17 +6,18 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"strconv"
 	"time"
 	"zng.jp/tv"
 )
 
 type PlayTask struct {
-	Stream *tv.Stream
-	Writer io.Writer
+	Program *tv.Program
+	Writer  io.Writer
 }
 
 func (task *PlayTask) Requirements() []int32 {
-	return []int32{task.Stream.Config.System}
+	return []int32{task.Program.Stream.Config.System}
 }
 
 func (task *PlayTask) Equals(otherTask Task) bool {
@@ -28,12 +29,12 @@ func (task *PlayTask) Equals(otherTask Task) bool {
 }
 
 func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) error {
-	url, err := task.Stream.Url(assignments[0])
+	url, err := task.Program.Stream.Url(assignments[0])
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("env", "LANG=C", "vlc", "-I", "rc", "--sout", "#standard{access=file,dst=-,mux=ts}", url)
+	cmd := exec.Command("env", "LANG=C", "vlc", "-I", "rc", "--sout", "#standard{access=file,dst=-,mux=ts}", "--no-sout-all", "--programs", strconv.FormatInt(int64(task.Program.Info.Number), 10), url)
 	cmd.Stdout = task.Writer
 	in, err := cmd.StdinPipe()
 	if err != nil {
