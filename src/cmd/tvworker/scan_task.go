@@ -191,7 +191,7 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}, assignment int32) (
 			log.Print("Killing VLC...")
 			cmd.Process.Kill()
 			<-waitDone
-			return nil, err
+			return nil, communicateErr
 		}
 
 		timer := time.AfterFunc(time.Second, func() {
