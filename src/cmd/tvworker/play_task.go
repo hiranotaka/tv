@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -52,7 +51,6 @@ func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) {
 	if err != nil {
 		log.Fatal("StdinPipe failed: %v", err)
 	}
-	bin := bufio.NewWriter(in)
 	cmd.Start()
 
 	waitDone := make(chan struct{})
@@ -71,7 +69,7 @@ func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) {
 		})
 		defer timer.Stop()
 
-		bin.WriteString("quit\n")
+		io.WriteString(in, "quit\n")
 		<-waitDone
 	}
 }
