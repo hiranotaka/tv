@@ -93,7 +93,7 @@ func PostData(cancel <-chan struct{}, data *tv.Data) error {
 	}
 
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
+	if response.StatusCode != http.StatusNoContent {
 		body, _ := ioutil.ReadAll(response.Body)
 		return errors.New("Server returned on-OK status: " + strconv.Itoa(response.StatusCode) + " " + string(body))
 	}

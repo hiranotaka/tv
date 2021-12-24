@@ -140,6 +140,7 @@ func (handler *commandHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 		http.NotFound(writer, request)
 		return
 	}
+	log.Print(request)
 	writer.Header().Set("Content-Type", "video/mp2t")
 	writerSemaphore := make(chan io.Writer, 1)
 	writerSemaphore <- writer
