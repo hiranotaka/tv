@@ -206,7 +206,7 @@ func main() {
 				continue
 			}
 
-			log.Printf("Terminating task...", job.task)
+			log.Printf("Terminating task: %v", job.task)
 			close(job.cancel)
 			job.canceling = true
 		}
@@ -251,6 +251,7 @@ func main() {
 
 			jobs = append(jobs, job)
 
+			log.Printf("Starting task: %v", job.task)
 			go func() {
 				job.task.Run(cancel, assignments)
 				jobDone <- job
@@ -261,6 +262,7 @@ func main() {
 
 		select {
 		case doneJob := <-jobDone:
+			log.Printf("Task finished: %v", doneJob.task)
 			timer.Stop()
 			for i, job := range jobs {
 				if doneJob == job {
@@ -276,8 +278,8 @@ func main() {
 		case <-timer.C:
 
 		case <-notificationQueue:
+			log.Print("Notified.")
 			timer.Stop()
-			log.Print("Fetching data...")
 			newData, err := db.FetchData()
 			if err != nil {
 				log.Printf("fetchData failed: %v", err)

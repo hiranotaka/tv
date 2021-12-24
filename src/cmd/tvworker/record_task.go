@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"errors"
+	"fmt"
 	"log"
 	"os/exec"
 	"strconv"
@@ -18,6 +18,10 @@ func (task *RecordTask) getFile() string {
 	return "/srv/tv/" + task.Event.Info.Name + ".ts"
 }
 
+func (task *RecordTask) String() string {
+	return fmt.Sprintf("RecordTask{%v %v}", task.Event.Program.Info.Number, task.Event.Info.Name)
+}
+
 func (task *RecordTask) Requirements() []int32 {
 	return []int32{task.Event.Program.Stream.Config.System}
 }
@@ -30,10 +34,11 @@ func (task *RecordTask) Equals(otherTask Task) bool {
 	return otherRecordTask.Event.Program.Info.Number == task.Event.Program.Info.Number && otherRecordTask.Event.Info.Name == task.Event.Info.Name
 }
 
-func (task *RecordTask) Run(cancel <-chan struct{}, assignments []int32) error {
+func (task *RecordTask) Run(cancel <-chan struct{}, assignments []int32) {
 	url, err := task.Event.Program.Stream.Url(assignments[0])
 	if err != nil {
-		return err
+		log.Print("Failed to get a URL")
+		return
 	}
 
 	cmd := exec.Command("env", "LANG=C", "vlc", "-I", "rc", "--sout", "#standard{access=file,dst="+task.getFile(), ",mux=ts}", "--no-sout-all", "--programs", strconv.FormatInt(int64(task.Event.Program.Info.Number), 10), url)
@@ -51,20 +56,17 @@ func (task *RecordTask) Run(cancel <-chan struct{}, assignments []int32) error {
 		close(waitDone)
 	}()
 
-	log.Print("VLC running...")
-
 	select {
 	case <-waitDone:
-		return errors.New("VLC terminated")
+		log.Print("VLC terminated")
 	case <-cancel:
-		log.Print("Terminating VLC...")
 		timer := time.AfterFunc(time.Second, func() {
+			log.Print("VLC is not terminating within a second.")
 			cmd.Process.Kill()
 		})
 		defer timer.Stop()
 
 		bin.WriteString("quit\n")
 		<-waitDone
-		return nil
 	}
 }

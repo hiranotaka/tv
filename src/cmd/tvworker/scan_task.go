@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -122,7 +123,6 @@ func (task *ScanTask) communicate(cancel <-chan struct{}, in io.Writer, scanner 
 		return nil, errors.New("Cancelled")
 	}
 
-	log.Print("Retrieving stream info...")
 	if _, err := io.WriteString(in, "info\n"); err != nil {
 		return nil, err
 	}
@@ -134,7 +134,6 @@ func (task *ScanTask) communicate(cancel <-chan struct{}, in io.Writer, scanner 
 
 	time.Sleep(time.Second)
 
-	log.Print("Terminating VLC...")
 	if _, err := io.WriteString(in, "quit\n"); err != nil {
 		return nil, err
 	}
@@ -179,7 +178,6 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}, assignment int32) (
 
 	select {
 	case <-cancel:
-		log.Print("Killing VLC...")
 		cmd.Process.Kill()
 		close(communicateCancel)
 		<-communicateDone
@@ -188,14 +186,13 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}, assignment int32) (
 
 	case <-communicateDone:
 		if communicateErr != nil {
-			log.Print("Killing VLC...")
 			cmd.Process.Kill()
 			<-waitDone
 			return nil, communicateErr
 		}
 
 		timer := time.AfterFunc(time.Second, func() {
-			log.Print("Killing VLC...")
+			log.Print("VLC is not terminating within a second.")
 			cmd.Process.Kill()
 		})
 		defer timer.Stop()
@@ -204,7 +201,6 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}, assignment int32) (
 		return streamInfo, nil
 
 	case <-waitDone:
-		log.Print("Cancelling communication...")
 		close(communicateCancel)
 		<-communicateDone
 		if communicateErr != nil {
@@ -213,6 +209,10 @@ func (task *ScanTask) scanStreamInfo(cancel <-chan struct{}, assignment int32) (
 
 		return streamInfo, nil
 	}
+}
+
+func (task *ScanTask) String() string {
+	return fmt.Sprintf("ScanTask{%v}", task.Stream.Id)
 }
 
 func (task *ScanTask) Requirements() []int32 {
@@ -227,7 +227,7 @@ func (task *ScanTask) Equals(otherTask Task) bool {
 	return otherScanTask.Stream.Id == task.Stream.Id
 }
 
-func (task *ScanTask) Run(cancel <-chan struct{}, assignments []int32) error {
+func (task *ScanTask) Run(cancel <-chan struct{}, assignments []int32) {
 	data := &tv.Data{
 		StreamStateMap: map[tv.StreamId]*tv.StreamState{
 			task.Stream.Id: &tv.StreamState{
@@ -236,18 +236,18 @@ func (task *ScanTask) Run(cancel <-chan struct{}, assignments []int32) error {
 		},
 	}
 
-	log.Printf("Scanning stream info: %s ...", task.Stream.Id)
 	streamInfo, err := task.scanStreamInfo(cancel, assignments[0])
 	if err == nil {
 		data.InsertStreamInfo(task.Stream.Id, streamInfo)
-	} else if err.Error() == "Cancelled" {
-		return err
+	} else {
+		log.Printf("scanStreamInfo failed: %v", err)
+		if err.Error() == "Cancelled" {
+			return
+		}
 	}
 
-	log.Printf("Submitting stream info: %s ...", task.Stream.Id)
 	if err := db.PostData(cancel, data); err != nil {
-		return err
+		log.Printf("PostData failed: %v", err)
+		return
 	}
-
-	return nil
 }

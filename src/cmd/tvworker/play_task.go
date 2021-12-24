@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -14,6 +14,10 @@ import (
 type PlayTask struct {
 	Program *tv.Program
 	Writer  chan io.Writer
+}
+
+func (task *PlayTask) String() string {
+	return fmt.Sprintf("PlayTask{%v}", task.Writer)
 }
 
 func (task *PlayTask) Requirements() []int32 {
@@ -28,15 +32,17 @@ func (task *PlayTask) Equals(otherTask Task) bool {
 	return otherPlayTask.Writer == task.Writer
 }
 
-func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) error {
+func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) {
 	url, err := task.Program.Stream.Url(assignments[0])
 	if err != nil {
-		return err
+		log.Print("Failed to get a URL")
+		return
 	}
 
 	writer, ok := <-task.Writer
 	if !ok {
-		return nil
+		log.Print("Failed to acquire a writer")
+		return
 	}
 	defer func() { task.Writer <- writer }()
 
@@ -55,20 +61,17 @@ func (task *PlayTask) Run(cancel <-chan struct{}, assignments []int32) error {
 		close(waitDone)
 	}()
 
-	log.Print("VLC running...")
-
 	select {
 	case <-waitDone:
-		return errors.New("VLC terminated")
+		log.Print("VLC terminated")
 	case <-cancel:
-		log.Print("Terminating VLC...")
 		timer := time.AfterFunc(time.Second, func() {
+			log.Print("VLC is not terminating within a second.")
 			cmd.Process.Kill()
 		})
 		defer timer.Stop()
 
 		bin.WriteString("quit\n")
 		<-waitDone
-		return nil
 	}
 }
